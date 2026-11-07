@@ -1553,7 +1553,9 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
       }
       ET.gate?.intro.etapa(76, 94, 'Preparando as 344 mil ligações…');
       const m = new Map();
-      try {
+      // as anotações-base são do Diogo: só entram no cérebro dele. Cada aluno começa com o cérebro vazio
+      // (as 344 mil ligações dos arcos vêm dos dados da Bíblia, não daqui).
+      if (ET.admin) try {
         const bj = await fetch('data/base.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null);
         for (const n of (bj?.nos || [])) { const { id, ...d } = n; if (id) m.set(id, { id, user_id: 'base', base: true, status: d.status || 'rascunho', dados: d }); }
       } catch {}
@@ -3442,7 +3444,7 @@ function abrirImport(files) {
   const status = h('select', { id: 'imp-status' }, Object.keys(STATUS).map(k => h('option', { value: k, text: k })));
   status.value = 'rascunho';
   const dicaSt = h('p', { class: 'imp-info' });
-  const dica = () => { dicaSt.textContent = window.ET?.admin && status.value === 'verificado' ? 'Atenção: o que você marca como verificado também aparece para os alunos, na biblioteca. Rascunho fica só com você.' : status.value === 'rascunho' ? 'Rascunho: fica no seu cérebro para você conferir depois.' : ''; dicaSt.classList.toggle('imp-aviso', !!(window.ET?.admin && status.value === 'verificado')); };
+  const dica = () => { dicaSt.textContent = (status.value === 'rascunho' ? 'Rascunho: marcado para você conferir depois. ' : '') + 'Só você vê o seu cérebro.'; };
   status.onchange = dica; dica();
   const gravar = h('button', { class: 'btn primary', type: 'button', text: 'Gravar no cérebro' });
   const conta = () => {
