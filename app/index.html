@@ -587,7 +587,7 @@ details summary{cursor:pointer;color:var(--soft);font-size:13px}
 .nr-voz{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));border:1px solid #2a4166;background:#06111fd9;color:#CFE9FF;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;opacity:0;transition:opacity .4s .2s}
 .nr-voz[aria-pressed="true"]{border-color:#3BE3F0;color:#E9FDFF}
 .neuro.on .nr-x,.neuro.on .nr-voz{opacity:1}
-.nr-bar{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translate(-50%,24px);opacity:0;transition:transform .5s .15s cubic-bezier(.2,.8,.2,1),opacity .4s .15s;width:min(660px,calc(100% - 24px));display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:6px;align-items:center;background:#06111ff0;border:1px solid #1d4d57;border-radius:999px;padding:6px;box-shadow:0 0 40px -10px #22d3ee55}
+.nr-bar{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translate(-50%,24px);opacity:0;transition:transform .5s .15s cubic-bezier(.2,.8,.2,1),opacity .4s .15s;width:min(660px,calc(100% - 24px));display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px;align-items:center;background:#06111ff0;border:1px solid #1d4d57;border-radius:999px;padding:6px;box-shadow:0 0 40px -10px #22d3ee55}
 .neuro.on .nr-bar{transform:translate(-50%,0);opacity:1}
 .nr-bar input{background:none;border:0;outline:none;color:#E8EEF7;font-size:15.5px;padding:9px 6px;min-width:0}
 .nr-bar input::placeholder{color:#7F90AB}
@@ -606,10 +606,43 @@ details summary{cursor:pointer;color:var(--soft);font-size:13px}
 .nr-card-s{margin:0;color:#B6C3D8;font-size:13.5px}
 .nr-refs{display:flex;flex-wrap:wrap;gap:6px 12px}
 .nr-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+/* cartão embaixo do cérebro (celular e telas estreitas): os botões vêm logo depois do título, sempre à vista */
+.neuro:not(.side) .nr-card>.nr-card-h,.neuro:not(.side) .nr-card>.nr-card-t{order:-2}
+.neuro:not(.side) .nr-card>.nr-acts{order:-1;margin:0 0 2px;gap:6px}
+.neuro:not(.side) .nr-card>.nr-acts .btn{padding:7px 11px;font-size:13.5px}
 .nr-hist{position:absolute;top:0;right:0;bottom:0;width:min(440px,100%);background:#06111f;border-left:1px solid #1d4d57;display:flex;flex-direction:column;z-index:3;animation:rvIn .3s ease-out both}
 .nr-hist-h{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 10px;border-bottom:1px solid #123b48}
 .orb{transition:opacity .3s,transform .3s}
 .orb.away{opacity:0;pointer-events:none;transform:scale(.5)}
+/* tela de leitura */
+.ler{position:fixed;inset:0;z-index:47;background:var(--bg);color:var(--text);display:flex;flex-direction:column;opacity:0;transform:translateY(12px);transition:opacity .22s ease,transform .22s ease}
+.ler.on{opacity:1;transform:none}
+.ler-top{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--bg2)}
+.ler-volta{white-space:nowrap}
+.ler-chips{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.ler-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.ler-col{max-width:760px;margin:0 auto;padding:30px 22px calc(56px + env(safe-area-inset-bottom,0px))}
+.ler-t{font-family:var(--f-text);font-size:clamp(27px,4.2vw,40px);line-height:1.16;font-weight:600;margin:8px 0 10px;text-wrap:balance}
+.ler-meta{margin:0;color:var(--muted);font-size:13.5px}
+.ler-pai{display:inline-flex;gap:4px;align-items:baseline;margin-top:12px;padding:6px 12px;border:1px solid var(--line2);border-radius:999px;background:var(--panel);color:var(--text);font-size:13.5px;text-align:left}
+.ler-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.ler-h{display:block;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.ler-refs{margin-top:22px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.ler-refs-l{display:flex;flex-wrap:wrap;gap:8px 16px}
+.ans.ler-txt{font-family:var(--f-text);font-size:18.5px;line-height:1.75;margin-top:26px;color:var(--text)}
+.ans.ler-txt p{margin:0 0 1em}
+.ler-sec{margin-top:36px}
+.ler-fontes{margin:0;padding-left:18px;line-height:1.6}
+.ler-st{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:36px;padding-top:18px;border-top:1px solid var(--line)}
+@media (max-width:720px){.ler-col{padding:22px 18px calc(48px + env(safe-area-inset-bottom,0px))}.ans.ler-txt{font-size:17.5px}}
+/* o cérebro vivo dentro da aba Cérebro */
+.nr-dock{margin-top:16px}
+.neuro.dock{position:relative;inset:auto;z-index:1;height:clamp(520px,calc(100vh - 210px),820px);border:1px solid #123b48;border-radius:18px;overflow:hidden;background:radial-gradient(circle at 40% 46%,#071a2c,#02050A 72%);isolation:isolate}
+.neuro.dock .nr-scrim,.neuro.dock .nr-x{display:none}
+.neuro.dock .nr-hist{border-radius:0 18px 18px 0}
+.neuro.dock .nr-hist-h{padding-top:12px}
+.hud-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;margin-top:14px;align-items:start}
+@media (max-width:720px){.neuro.dock{height:clamp(540px,calc(100svh - var(--navh) - 120px),760px);border-radius:16px}.hud-row{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:720px){.nr-state{top:6%}.nr-log{display:none}}
 @media (prefers-reduced-motion:reduce){.nr-stage,.nr-bar,.nr-scrim{transition:none}}
 
@@ -2083,7 +2116,8 @@ function setTab(tab, opts = {}) {
   // estudo compartilhado: o visitante só vê o estudo; o resto do app pede a conta
   if (window.ET?.visitante && !(tab === 'descobertas' && opts.estudo === ET.visitante.id)) { if (S.tab) ET.convite(); else setTab('descobertas', { estudo: ET.visitante.id }); return; }
   if (FS.isOpen) FS.close();
-  if (NEURO.isOpen) NEURO.close();
+  if (LER.isOpen) LER.fechar(true);
+  if (NEURO.docked) NEURO.undock(); else if (NEURO.isOpen) NEURO.close();
   if (matchMedia('(max-width:1080px)').matches && !$('#panel').hidden) closePanel();
   S.tab = tab; store.set('tab', tab);
   $$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === tab)));
@@ -2494,7 +2528,7 @@ async function openLexPanel(code) {
 /* ================= FULL-SCREEN STAGE ================= */
 const XSVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 // animações que ficam por baixo de uma tela cheia param de desenhar (economiza bateria e deixa a tela da frente leve)
-const coberto = (fs) => (typeof NEURO !== 'undefined' && NEURO.isOpen) || (fs && !$('#fs').hidden);
+const coberto = (fs) => S.lendo || (typeof NEURO !== 'undefined' && NEURO.isOpen && !NEURO.docked) || (fs && !$('#fs').hidden);
 const FS = {
   onClose: null,
   open({ title, tools = [], mount, onClose, wrap = false }) {
@@ -2850,7 +2884,8 @@ async function startDb() {
     S.brainReady = got.nos; indexBrain();
     if (was) [...S.brain.keys()].filter(k => !prevIds.has(k)).slice(0, 6).forEach((id, i) => HUDFX.emit({ type: 'birth', id }, 200 + i * 300));
     if (BINAH.V) BINAH.V.setData([...S.brain.values()]);
-    if (NEURO.isOpen && NEURO.V) NEURO.V.setData();
+    if (NEURO.isOpen && NEURO.V && !NEURO.docked) NEURO.V.setData();
+    if (LER.isOpen) LER.refresh();
     if (S.tab === 'inicio') PORTAL.refresh();
     if (was && S.brain.size > prev) { const o = $('#orb'); o.classList.remove('pulse'); void o.offsetWidth; o.classList.add('pulse'); }
     if (S.tab === 'cerebro' || BRAIN.full) BRAIN.refresh();
@@ -2889,6 +2924,7 @@ async function saveNode(data, id) {
   }
 }
 function openNode(id, hostIn) {
+  if (!hostIn) return LER.open(id);
   const n = S.brain.get(id); if (!n) return;
   const t = TIPOS[n.tipo] || TIPOS.nota;
   const body = hostIn || openPanel(t.n); if (!hostIn) body.innerHTML = '';
@@ -2906,6 +2942,110 @@ function openNode(id, hostIn) {
       ['verificado', 'rascunho', 'contestado'].filter(s => s !== n.status).map(s => h('button', { class: 'btn', text: 'Marcar ' + s, onclick: async () => { if (await saveNode({ status: s }, n.id)) { if (hostIn) { hostIn.innerHTML = ''; openNode(n.id, hostIn); } else openNode(n.id); } } })),
       h('button', { class: 'btn', text: 'Editar', onclick: () => openEditor(n, n.id) })) : null));
 }
+/* ---------- tela de leitura: qualquer descoberta aberta em tela ampla, para estudar com calma ---------- */
+// o que mais no cérebro se liga a este pensamento: o mesmo estudo, os mesmos versículos, o mesmo capítulo
+function ligadasDe(n) {
+  const refs = new Set(n.refs || []), caps = new Set([...refs].map(r => Math.floor(r / 1000)));
+  const out = [];
+  for (const m of S.brain.values()) {
+    if (m.id === n.id) continue;
+    let s = 0, cap = 0;
+    if ((m.estudo && m.estudo === n.id) || (n.estudo && n.estudo === m.id)) s += 6;
+    else if (n.estudo && m.estudo === n.estudo) s += 2;
+    for (const r of m.refs || []) { if (refs.has(r)) s += 3; else if (cap < 2 && caps.has(Math.floor(r / 1000))) { s += 1; cap++; } }
+    if (s) out.push([s, m]);
+  }
+  out.sort((a, b) => b[0] - a[0] || String(b[1].atualizado || '').localeCompare(String(a[1].atualizado || '')));
+  return out.map(x => x[1]);
+}
+const LER = {
+  el: null, isOpen: false, atual: null, pilha: [], origem: null,
+  build() {
+    if (this.el) return;
+    this.btVolta = h('button', { class: 'btn ghost ler-volta', type: 'button', onclick: () => this.voltar() });
+    this.chips = h('div', { class: 'ler-chips' });
+    this.scroller = h('div', { class: 'ler-scroll' });
+    this.el = h('div', { class: 'ler', hidden: true, role: 'dialog', 'aria-modal': 'true' },
+      h('header', { class: 'ler-top' }, this.btVolta, this.chips,
+        h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Fechar a leitura', title: 'Fechar', html: XSVG, onclick: () => this.fechar() })),
+      this.scroller);
+    // versículos dentro da leitura abrem numa janelinha, sem sair daqui
+    this.el.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); e.stopPropagation(); versoPopup(+g.dataset.goto); } });
+    // botão "voltar" do celular volta um passo da leitura
+    addEventListener('popstate', () => { if (this.isOpen) this.voltar(true); });
+    document.body.append(this.el);
+  },
+  open(id, op = {}) {
+    const n = S.brain.get(id); if (!n) return;
+    if (n.tipo === 'estudo' && typeof openEstudo === 'function') { if (this.isOpen) this.fechar(true); openEstudo(id); return; }
+    this.build();
+    const novo = !this.isOpen;
+    if (novo) { this.pilha = []; this.origem = op.binah ? { binah: true, id } : null; }
+    else if (this.atual && this.atual !== id && !op.troca) this.pilha.push(this.atual);
+    const passo = novo || (this.atual !== id && !op.troca);
+    this.atual = id; this.render(n);
+    this.scroller.scrollTop = 0;
+    if (passo) try { history.pushState({ etLer: this.pilha.length + 1 }, ''); } catch {}
+    if (novo) {
+      this.isOpen = true; S.lendo = true; this.el.hidden = false;
+      requestAnimationFrame(() => this.el.classList.add('on'));
+      $('#orb')?.classList.add('away');
+      if (NEURO.docked) NEURO.V?.stop();
+      setTimeout(() => { if (this.isOpen) this.btVolta.focus({ preventScroll: true }); }, 60);
+    }
+  },
+  refresh() { const n = this.atual && S.brain.get(this.atual); if (!n) return; const y = this.scroller.scrollTop; this.render(n); this.scroller.scrollTop = y; },
+  // um passo para trás: o pensamento anterior, ou sai da leitura
+  voltar(doHistorico) {
+    if (!this.isOpen) return;
+    if (!doHistorico && history.state?.etLer) { history.back(); return; }
+    if (this.pilha.length) { const id = this.pilha.pop(); this.open(id, { troca: true }); return; }
+    this.fechar(false, true);
+  },
+  // sair da leitura. nav = vai para outra tela do app (não volta ao Binah)
+  fechar(nav, doHistorico) {
+    if (!this.isOpen) return;
+    const o = this.origem, passos = this.pilha.length + 1;
+    this.isOpen = false; S.lendo = false; this.atual = null; this.pilha = []; this.origem = null;
+    this.el.classList.remove('on'); setTimeout(() => { if (!this.isOpen) { this.el.hidden = true; this.scroller.innerHTML = ''; } }, 220);
+    if (!doHistorico && !nav) try { if (history.state?.etLer) history.go(-Math.min(passos, history.state.etLer)); } catch {}
+    if (nav) try { if (history.state?.etLer) history.replaceState(null, ''); } catch {}
+    if (NEURO.docked) { NEURO.V?.start(); }
+    else if (o?.binah && !nav) { NEURO.open({ node: o.id }); return; }
+    else if (!NEURO.isOpen) $('#orb')?.classList.remove('away');
+  },
+  render(n) {
+    const t = TIPOS[n.tipo] || TIPOS.nota, meu = S.canWrite && S.db && !n._lib;
+    const refs = (n.refs || []).filter(r => S.books[split(r)[0]]);
+    const lig = ligadasDe(n);
+    const autor = n.autor === 'claude' ? 'pesquisado pelo Claude' : n.autor === 'ia' ? 'gerado por IA' : n._lib ? 'Diogo Soares' : 'você';
+    this.btVolta.textContent = this.pilha.length ? '‹ Voltar' : this.origem?.binah ? '‹ Voltar ao Binah' : '‹ Voltar';
+    this.el.setAttribute('aria-label', n.titulo || 'Leitura');
+    this.chips.innerHTML = '';
+    this.chips.append(h('span', { class: 'chip' }, h('span', { class: 'dot', style: 'background:' + t.c }), t.n), n.status ? h('span', { class: 'chip st-' + n.status, text: n.status }) : null);
+    const pai = n.estudo && S.brain.get(n.estudo);
+    const marca = st => h('button', { class: 'btn', type: 'button', text: 'Marcar como ' + st, onclick: async () => { if (await saveNode({ status: st }, n.id)) this.refresh(); } });
+    const col = h('article', { class: 'ler-col' },
+      h('div', { class: 'eyebrow', text: t.n + ' · ' + autor }),
+      h('h1', { class: 'ler-t', text: n.titulo || '(sem título)' }),
+      h('p', { class: 'ler-meta' },
+        (n.criado ? 'Criado em ' + new Date(n.criado).toLocaleDateString('pt-BR') : '') + (refs.length ? (n.criado ? ' · ' : '') + refs.length + (refs.length === 1 ? ' versículo' : ' versículos') : '') + (lig.length ? ' · ligado a ' + lig.length + (lig.length === 1 ? ' pensamento' : ' pensamentos') : '')),
+      pai ? h('button', { class: 'ler-pai', type: 'button', onclick: () => this.open(pai.id) }, h('span', { class: 'muted', text: 'Parte do estudo ' }), h('strong', { text: pai.titulo || '' }), ' ›') : null,
+      h('div', { class: 'ler-acts' },
+        h('button', { class: 'btn glow', type: 'button', text: 'Perguntar ao Binah', onclick: () => { const id = n.id; this.fechar(true); NEURO.open({ node: id, pergunta: 'O que mais se liga a “' + (n.titulo || '').slice(0, 80) + '”?' }); } }),
+        refs[0] ? h('button', { class: 'btn', type: 'button', text: 'Ler ' + refLabel(refs[0]) + ' no Leitor', onclick: () => { this.fechar(true); gotoVerse(refs[0]); } }) : null,
+        meu ? h('button', { class: 'btn', type: 'button', text: 'Editar', onclick: () => openEditor(n, n.id) }) : null),
+      refs.length ? h('div', { class: 'ler-refs' }, h('span', { class: 'ler-h', text: 'Versículos · toque para ler' }),
+        h('div', { class: 'ler-refs-l' }, refs.map(r => h('button', { class: 'ref', type: 'button', 'data-goto': r, text: refLabel(r, true) })))) : null,
+      h('div', { class: 'ans ler-txt', html: mdLite(n.texto || '') }),
+      (n.fontes || []).filter(f => f.t || f.u).length ? h('section', { class: 'ler-sec' }, h('h2', { class: 'ler-h', text: 'Fontes' }),
+        h('ul', { class: 'lic ler-fontes' }, n.fontes.filter(f => f.t || f.u).map(f => h('li', {}, f.u ? h('a', { href: f.u, target: '_blank', rel: 'noopener', text: f.t || f.u }) : f.t)))) : null,
+      lig.length ? h('section', { class: 'ler-sec' }, h('h2', { class: 'ler-h', text: 'Ligado a isto no seu cérebro' }),
+        h('div', { class: 'ngrid' }, lig.slice(0, 8).map(nodeCard))) : null,
+      meu ? h('div', { class: 'ler-st' }, h('span', { class: 'muted', text: 'Status:' }), ['verificado', 'rascunho', 'contestado'].filter(st => st !== n.status).map(marca)) : null);
+    this.scroller.innerHTML = ''; this.scroller.append(col);
+  },
+};
 function openEditor(init = {}, id = null) {
   if (!S.db) { toast('O cérebro não está disponível nesta visualização.'); return; }
   if (!S.canWrite) { toast('Você só pode ler este cérebro.'); return; }
@@ -3145,6 +3285,7 @@ const BRAIN = {
   refresh() {
     const list = this.filtered();
     this.thumb?.setData(list); this.full?.setData(list);
+    if (NEURO.docked) NEURO.V?.setData(list);
     const st = $('#brainStats'); const verses = new Set(); S.brain.forEach(n => (n.refs || []).forEach(r => verses.add(r)));
     if (st) st.textContent = S.brainReady ? `${fmt(S.brain.size)} nós · ${fmt(verses.size)} versículos ligados` : (S.db ? 'carregando…' : '');
     this.widgets(); this.list(list);
@@ -3227,11 +3368,9 @@ VIEWS.cerebro = root => {
     h('div', { style: 'display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;justify-content:space-between' },
       h('div', {}, h('h1', { class: 'h1', text: 'Tudo o que você desvendou, ligado aos versículos' }), h('p', { class: 'lede mono', id: 'brainStats', style: 'font-size:13px' })),
       h('button', { class: 'btn primary', text: '+ Nova descoberta', onclick: () => openEditor({}) })));
-  const thumb = h('button', { class: 'thumb hud-thumb', 'aria-label': 'Abrir o cérebro' });
-  const cv = h('canvas', { role: 'img', 'aria-label': 'Miniatura do Segundo Cérebro' });
-  thumb.append(cv, h('span', { class: 'thumb-cta' }, h('span', { html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>' }), 'Abrir o cérebro'));
-  thumb.onclick = () => NEURO.open({ from: thumb });
-  wrap.append(h('div', { class: 'hud-grid' }, h('div', { class: 'hud-thumb-wrap' }, thumb), h('div', { id: 'brainWidgets', class: 'hud-widgets' })));
+  // o cérebro vivo mora aqui (o mesmo da bola do Binah): mexe, amplia e abre o que você tocar
+  const dock = h('div', { class: 'nr-dock' });
+  wrap.append(dock, h('div', { id: 'brainWidgets', class: 'hud-widgets hud-row' }));
   const f = S.brainFilter;
   const q = h('input', { type: 'search', id: 'brainQ', placeholder: 'Buscar no cérebro…', value: f.q || '' });
   let qt; q.oninput = () => { clearTimeout(qt); qt = setTimeout(() => { f.q = q.value; BRAIN.listMax = 60; BRAIN.refresh(); }, 220); };
@@ -3241,9 +3380,7 @@ VIEWS.cerebro = root => {
   const chvHost = h('section', { style: 'margin-top:22px;max-width:780px' });
   wrap.append(chvHost);
   root.append(wrap);
-  const V = makeHud(cv, false); BRAIN.thumb = V;
-  const ro = new ResizeObserver(() => { if (!cv.isConnected) { ro.disconnect(); V.stop(); if (BRAIN.thumb === V) BRAIN.thumb = null; return; } V.resize(); }); ro.observe(thumb);
-  V.resize(); V.start();
+  NEURO.dock(dock);
   BRAIN.refresh();
   renderChavruta(chvHost, null);
 };
@@ -4688,8 +4825,7 @@ const SYN = {
   },
 };
 /* ================= v4 · cérebro neural (cresce do ponto tocado) ================= */
-function neuroGraph() {
-  const list = [...S.brain.values()];
+function neuroGraph(list = [...S.brain.values()]) {
   const nodes = list.map(n => {
     const refs = (n.refs || []).filter(r => S.books[split(r)[0]]);
     const hh = hashStr(n.id);
@@ -4717,7 +4853,7 @@ function neuroGraph() {
   return { nodes, edges, adj, idx };
 }
 const NEURO = {
-  el: null, V: null, isOpen: false, origin: null,
+  el: null, V: null, isOpen: false, origin: null, docked: false, host: null, ro: null,
   build() {
     if (this.el) return this.el;
     const cv = h('canvas', { role: 'img', 'aria-label': 'Segundo Cérebro: pensamentos ligados aos versículos, com os 66 livros em volta' });
@@ -4756,7 +4892,9 @@ const NEURO = {
     return el;
   },
   layout(final) {
-    const W = innerWidth, H = innerHeight, bar = 64 + 16;
+    // na aba Cérebro o cérebro mora dentro de uma caixa; aberto pela bola do Binah, ocupa a tela toda
+    const R = this.docked ? this.el.getBoundingClientRect() : null; if (R && !R.width) return;
+    const W = R ? R.width : innerWidth, H = R ? R.height : innerHeight, bar = 64 + 16;
     const side = W >= 1000, low = side ? 60 : W < 720 ? 150 : 96;
     const D = Math.round(Math.max(240, Math.min(side ? W * 0.56 : W - 16, H - bar - low - 20, 860)));
     const sx = Math.round(side ? Math.max(16, W * 0.4 - D / 2) : (W - D) / 2), sy = Math.round(Math.max(10, (H - bar - low - D) / 2));
@@ -4769,8 +4907,45 @@ const NEURO = {
     if (final) this.stage.style.clipPath = 'circle(50% at 50% 50%)';
     this.V?.resize();
   },
+  // o mesmo cérebro, morando dentro da aba Cérebro (vivo, com zoom, toque nos pontos e a barra do Binah)
+  dock(host) {
+    this.build();
+    if (this.isOpen && !this.docked) { this.isOpen = false; this.el.classList.remove('on'); this.V?.stop(); }
+    this.docked = true; this.isOpen = true; this.host = host;
+    const el = this.el; host.append(el);
+    el.classList.add('dock', 'on'); el.hidden = false;
+    this.card.hidden = true; this.hist.hidden = true;
+    this.stage.style.transition = 'none'; this.stage.style.clipPath = 'none';
+    if (!this.V) this.V = makeNeuro(this.cv);
+    Object.assign(this.V, { Z: 1, Zt: 1, px: 0, py: 0, pxt: 0, pyt: 0, sel: -1, book: -1, linked: new Set() }); this.zoomUI();
+    this.layout(true);
+    this.V.setData(BRAIN.filtered()); this.V.resize(); this.V.start();
+    this.say(BINAH.hist.length ? '' : 'Os fios finos são as 344.799 ligações da Bíblia. Toque num livro do anel, num pensamento ou num estudo para acender as ligações dele.');
+    HUDFX.setMode('idle');
+    $('#orb')?.classList.add('away');
+    this.ro?.disconnect(); this.ro = new ResizeObserver(() => { if (this.docked && el.isConnected) this.layout(true); }); this.ro.observe(el);
+  },
+  undock() {
+    if (!this.docked) return;
+    this.ro?.disconnect(); this.ro = null;
+    BINAH.abort?.abort(); VOZ.stop(); HUDFX.setMode('idle');
+    this.docked = false; this.isOpen = false; this.host = null; this.V?.stop();
+    const el = this.el; el.classList.remove('dock', 'on'); el.hidden = true; this.card.hidden = true; this.hist.hidden = true;
+    document.body.append(el); this.stage.style.clipPath = ''; this.stage.style.transition = '';
+    $('#orb')?.classList.remove('away');
+  },
+  dicaRoda() { if (this._dicaRoda) return; this._dicaRoda = true; toast('Para ampliar o cérebro: Ctrl + roda do mouse, os botões + e −, ou dois cliques.'); },
+  // acha um pensamento pelo id e acende ele (usado ao voltar da tela de leitura)
+  selectId(id) { const V = this.V, i = V?.g.idx.get(id); if (i != null) V.select(i); },
   open(opts = {}) {
     this.build();
+    if (this.docked) {
+      this.el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (opts.node) this.selectId(opts.node); else if (opts.verse) this.showVerse(opts.verse);
+      if (opts.pergunta) this.inp.value = opts.pergunta;
+      if (opts.focus || opts.pergunta) setTimeout(() => this.inp.focus(), 300);
+      return;
+    }
     if (this.isOpen) { if (opts.focus) this.inp.focus(); return; }
     this.isOpen = true; FS.isOpen && FS.close();
     const el = this.el; el.hidden = false; this.layout(false);
@@ -4789,16 +4964,18 @@ const NEURO = {
     this.V.setData(); this.V.resize(); this.V.start();
     this.say(BINAH.hist.length || opts.verse ? '' : 'Os fios finos são as 344.799 ligações da Bíblia. Toque num livro do anel, num pensamento ou num estudo para acender as ligações dele.');
     if (opts.verse) setTimeout(() => { if (this.isOpen) this.showVerse(opts.verse); }, 420);
+    if (opts.node) setTimeout(() => { if (this.isOpen) this.selectId(opts.node); }, 420);
+    if (opts.pergunta) this.inp.value = opts.pergunta;
     HUDFX.setMode('idle');
-    if (opts.focus || FINE) setTimeout(() => this.inp.focus(), 500);
+    if (opts.focus || opts.pergunta || FINE) setTimeout(() => this.inp.focus(), 500);
   },
   close() {
-    if (!this.isOpen) return; this.isOpen = false;
+    if (!this.isOpen || this.docked) return; this.isOpen = false;
     BINAH.abort?.abort(); VOZ.stop(); HUDFX.setMode('idle');
     const o = this.origin || { ox: this.D / 2, oy: this.D / 2, r: 20 };
     this.el.classList.remove('on'); this.stage.style.clipPath = `circle(${o.r}px at ${o.ox}px ${o.oy}px)`;
     this.card.hidden = true; this.hist.hidden = true;
-    setTimeout(() => { if (!this.isOpen) { this.el.hidden = true; this.V?.stop(); $('#orb')?.classList.remove('away'); } }, 560);
+    setTimeout(() => { if (!this.isOpen) { this.el.hidden = true; this.V?.stop(); if (!S.lendo && !this.docked) $('#orb')?.classList.remove('away'); } }, 560);
   },
   say(txt, tip) { this.sub.hidden = !txt; this.sub.className = 'nr-sub' + (tip ? ' tip' : ''); this.sub.textContent = txt || ''; },
   ui() {
@@ -4843,7 +5020,7 @@ const NEURO = {
       txt ? h('p', { class: 'nr-card-s', text: txt.length > 240 ? txt.slice(0, 240) + '…' : txt }) : null,
       d.refs.length ? h('div', { class: 'nr-refs' }, d.refs.slice(0, 8).map(r => h('button', { class: 'ref', type: 'button', text: refLabel(r), onclick: () => this.showVerse(r) }))) : null, synl,
       h('div', { class: 'nr-acts' },
-        h('button', { class: 'btn primary', type: 'button', text: n.tipo === 'estudo' ? 'Abrir estudo' : 'Abrir', onclick: () => { this.close(); if (n.tipo === 'estudo' && typeof openEstudo === 'function') openEstudo(n.id); else openNode(n.id); } }),
+        h('button', { class: 'btn primary', type: 'button', text: n.tipo === 'estudo' ? 'Abrir estudo' : 'Abrir', onclick: () => { const doBinah = !this.docked; this.close(); if (n.tipo === 'estudo' && typeof openEstudo === 'function') openEstudo(n.id); else LER.open(n.id, { binah: doBinah }); } }),
         d.refs[0] ? h('button', { class: 'btn', type: 'button', text: 'Ler ' + refLabel(d.refs[0]), onclick: () => { this.close(); gotoVerse(d.refs[0]); } }) : null,
         h('button', { class: 'btn glow', type: 'button', text: 'Perguntar ao Binah', onclick: () => { this.inp.value = 'O que mais se liga a “' + (n.titulo || '').slice(0, 80) + '”?'; this.inp.focus(); } })));
     this.sub.hidden = true;
@@ -4968,9 +5145,9 @@ function nzLocal(V, vw) {
 function makeNeuro(canvas) {
   const V = { canvas, ctx: canvas.getContext('2d'), W: 0, dpr: 1, g: { nodes: [], edges: [], adj: [] }, yaw: 0, pitch: 0, vyaw: 0, vpitch: 0, uyaw: 0, upitch: 0, k: 1, ox: 0, oy: 0, sel: -1, book: -1, pull: 0, linked: new Set(), proj: [], raf: 0, last: 0, running: false, drag: null, hover: -1,
     Z: 1, Zt: 1, px: 0, py: 0, pxt: 0, pyt: 0, lastMove: 0 };
-  V.setData = () => {
+  V.setData = list => {
     const prevSel = V.sel >= 0 ? V.g.nodes[V.sel]?.id : null;
-    V.g = neuroGraph(); V.sel = prevSel ? (V.g.idx.get(prevSel) ?? -1) : -1;
+    V.g = neuroGraph(list); V.sel = prevSel ? (V.g.idx.get(prevSel) ?? -1) : -1;
     V.linked = new Set(V.sel >= 0 ? V.g.adj[V.sel] : []);
     if (V.syn) { const sk = V.syn; SYN.light(V, sk.kind, sk.kind === 'node' && V.sel >= 0 ? V.g.nodes[V.sel].refs : sk.x); }
   };
@@ -5044,7 +5221,7 @@ function makeNeuro(canvas) {
     else NEURO.deselect();
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', e => { pts.delete(e.pointerId); if (!pts.size) V.drag = null; });
-  canvas.addEventListener('wheel', e => { e.preventDefault(); const [x, y] = pos(e); V.setZoom(V.Z * Math.pow(1.0018, -e.deltaY), x, y, false); }, { passive: false });
+  canvas.addEventListener('wheel', e => { if (NEURO.docked && !e.ctrlKey) { NEURO.dicaRoda(); return; } e.preventDefault(); const [x, y] = pos(e); V.setZoom(V.Z * Math.pow(1.0018, -e.deltaY), x, y, false); }, { passive: false });
   canvas.addEventListener('dblclick', e => e.preventDefault());
   return V;
 }
@@ -5430,7 +5607,7 @@ async function versoPopup(id) {
   m.onclick = e => { if (e.target === m) fecha(); };
   const txt = h('p', { class: 'es-pop-v', text: '…' });
   m.append(h('div', { class: 'box', role: 'dialog', 'aria-label': refLabel(id, true) }, h('div', { class: 'eyebrow', text: refLabel(id, true) }), txt,
-    h('div', { class: 'es-acts' }, h('button', { class: 'btn primary', text: 'Ler o capítulo inteiro', onclick: () => { fecha(); ET.convite('ler a Bíblia inteira com hebraico, grego e as ligações entre versículos'); } }), h('button', { class: 'btn', text: 'Fechar', onclick: fecha }))));
+    h('div', { class: 'es-acts' }, h('button', { class: 'btn primary', text: window.ET?.visitante ? 'Ler o capítulo inteiro' : 'Ler no Leitor', onclick: () => { fecha(); if (window.ET?.visitante) ET.convite('ler a Bíblia inteira com hebraico, grego e as ligações entre versículos'); else { if (LER.isOpen) LER.fechar(true); gotoVerse(id); } } }), h('button', { class: 'btn', text: 'Fechar', onclick: fecha }))));
   txt.textContent = await verseText(id).catch(() => '') || 'Não consegui carregar o versículo.';
 }
 
@@ -5967,7 +6144,14 @@ async function boot() {
   $('#calChip').onclick = () => setTab('mesa');
   $('#searchForm').onsubmit = e => { e.preventDefault(); runSearch($('#busca').value); $('#busca').blur(); };
   document.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); if (window.ET?.visitante) versoPopup(+g.dataset.goto); else gotoVerse(+g.dataset.goto); } });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && NEURO.isOpen) { if (!NEURO.hist.hidden) NEURO.hist.hidden = true; else if (!NEURO.card.hidden) NEURO.deselect(); else NEURO.close(); return; } if (e.key === 'Escape') { if (FS.isOpen && $('#modal').hidden) { FS.close(); return; } if (!$('#modal').hidden) { $('#modal').hidden = true; $('#modal').innerHTML = ''; } else closePanel(); } });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!$('#modal').hidden) { $('#modal').hidden = true; $('#modal').innerHTML = ''; return; }
+    if (LER.isOpen) { LER.voltar(); return; }
+    if (NEURO.isOpen) { if (!NEURO.hist.hidden) { NEURO.hist.hidden = true; return; } if (!NEURO.card.hidden) { NEURO.deselect(); return; } if (!NEURO.docked) { NEURO.close(); return; } }
+    if (FS.isOpen) { FS.close(); return; }
+    closePanel();
+  });
   renderCalChip();
   const hash = (location.hash || '').slice(1);
   if (/^e-[\w.~-]+$/.test(hash)) setTab('descobertas', { estudo: hash.slice(2) }); else setTab(VIEWS[hash] ? hash : 'inicio');
