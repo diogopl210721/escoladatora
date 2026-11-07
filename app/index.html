@@ -304,6 +304,24 @@ details summary{cursor:pointer;color:var(--soft);font-size:13px}
 .fs-sheet-body{padding:6px 16px 20px;display:flex;flex-direction:column;gap:6px}
 .fs-sheet-x{position:sticky;top:8px;float:right;margin:8px 10px 0 0;z-index:2}
 .arc-fs,.hud-fs{position:absolute;inset:0;touch-action:none}
+/* Descobertas: confirmar o pedido e a resposta no estudo */
+.inv-conf{margin-top:14px;border-color:color-mix(in srgb,var(--sky) 45%,var(--line))}
+.inv-conf-t{font-size:17px;line-height:1.5;margin:6px 0 4px;font-family:var(--f-text)}
+.inv-conf-h{margin:14px 0 6px;font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.inv-conf-l,.inv-conf-ps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.5}
+.inv-conf-chips{display:flex;flex-wrap:wrap;gap:6px}
+.inv-conf-b{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.inv-conf-load{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--soft)}
+.inv-conf-load i{width:14px;height:14px;border:2px solid var(--sky);border-right-color:transparent;border-radius:50%;animation:invSpin .8s linear infinite}
+.inv-conf-err{margin:0;color:var(--warn,#F2B648)}
+.es-pedido{margin:6px 0 0;font-size:14.5px;font-family:var(--f-text);color:var(--soft)}
+.es-resp-curta{font-family:var(--f-text);font-size:19px;line-height:1.6;padding:16px 18px;border-left:3px solid var(--sky);background:var(--panel);border-radius:0 12px 12px 0;margin-bottom:14px}
+.es-visoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.es-visao{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel);display:flex;flex-direction:column;gap:6px}
+.es-visao-b{font-size:12.5px;color:var(--muted)}
+.es-sustenta{border:1px solid color-mix(in srgb,var(--green,#2FC79A) 40%,var(--line));border-radius:12px;padding:12px 14px}
+.es-chaves{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:12px}
+.es-chave-t{margin:4px 0 0;font-family:var(--f-text);font-size:15px;line-height:1.55;color:var(--soft)}
 /* aba Mapa e jornadas */
 .tab-s{display:none}
 @media (max-width:720px){.tab-l{display:none}.tab-s{display:inline}
@@ -5596,7 +5614,7 @@ const SELOS = {
   binah: { n: 'Pesquisa do Binah · conferir', c: '#E9A43C' },
 };
 const seloChip = k => { const s = SELOS[k]; return s ? h('span', { class: 'selo selo-' + k, title: s.n }, h('i', { style: 'background:' + s.c }), s.n) : null; };
-const SEC_ICON = { passagem: '📜', pessoas: '👤', geografia: '🗺', lugares: '📍', tempo: '⏳', contas: '🧮', palavras: 'א', conexoes: '⇄', judaica: '✡', crista: '✝', arqueologia: '⛏', teses: '⚖', sintese: '✦', perguntas: '?' };
+const SEC_ICON = { resposta: '💡', chaves: '🔑', passagem: '📜', pessoas: '👤', geografia: '🗺', lugares: '📍', tempo: '⏳', contas: '🧮', palavras: 'א', conexoes: '⇄', judaica: '✡', crista: '✝', arqueologia: '⛏', teses: '⚖', sintese: '✦', perguntas: '?' };
 
 /* ---------- expressões das calculadoras (sem eval) ---------- */
 const emLite = s => linkRefs(esc(s || '').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*]+)\*/g, '<em>$1</em>'));
@@ -5779,6 +5797,7 @@ function renderEstudo(root, id) {
   } }) : null;
   wrap.append(h('header', { class: 'es-hero' },
     h('div', { class: 'es-ref mono', text: (p.rotulo || '') }),
+    E.pedido?.texto ? h('p', { class: 'es-pedido' }, h('span', { class: 'muted', text: 'Você pediu: ' }), '“' + E.pedido.texto + '”') : null,
     h('h1', { class: 'es-title', text: E.titulo || 'Estudo' }),
     E.subtitulo ? h('p', { class: 'es-sub', text: E.subtitulo }) : null,
     E.resumo ? h('p', { class: 'lede-big', text: E.resumo }) : null,
@@ -5797,6 +5816,7 @@ function renderEstudo(root, id) {
     // nas seções novas o texto corrido vem depois das fichas (cruzamentos, caminhos, contas, datação)
     const MD_DEPOIS = { pessoas: 'Como essas vidas se cruzam', lugares: 'Caminhos e terreno', tempo: 'Quando foi' };
     const mdDepois = s.md && (MD_DEPOIS[s.k] && (s.pessoas?.length || s.lugares?.length || s.linha) || (s.k === 'contas' && s.medidas?.length));
+    if (s.curta) sec.append(h('div', { class: 'es-resp-curta', html: emLite(s.curta) }));
     if (s.md && !mdDepois) sec.append(h('div', { class: 'ans es-md', html: mdLite(s.md) }));
     if (s.pessoas?.length) sec.append(h('div', { class: 'es-pes-grid' }, s.pessoas.map(P => pessoaCard(P, p.de, p.ate))));
     if (s.lugares?.length) sec.append(h('div', { class: 'es-lug-grid' }, s.lugares.map(L => lugarCard(L, p.de, p.ate))));
@@ -5808,6 +5828,10 @@ function renderEstudo(root, id) {
       det.addEventListener('toggle', async () => { if (!det.open || det.dataset.ok) return; det.dataset.ok = '1'; const [b, c0, v0] = split(p.de), [, c1, v1] = split(p.ate); const pt = await getJSON('data/pt/' + S.books[b].o + '.json'); const box = h('div', { class: 'es-verses' }); for (let c = c0; c <= c1; c++) { const vs = pt[c - 1] || []; for (let v = 1; v <= vs.length; v++) { if ((c === c0 && v < v0) || (c === c1 && v > v1)) continue; box.append(h('p', {}, h('button', { class: 'ref', 'data-goto': vid(b, c, v), text: c + ':' + v }), ' ', vs[v - 1])); } } det.append(box); });
       sec.append(det);
     }
+    if (s.visoes?.length) sec.append(h('h3', { class: 'es-h3', text: 'As posições' }), h('div', { class: 'es-visoes' }, s.visoes.map(v => h('div', { class: 'es-visao' }, h('b', { text: v.quem }), h('div', { class: 'ans', html: mdLite(v.diz) }), v.base ? h('div', { class: 'es-visao-b', html: emLite('Base: ' + v.base) }) : null))));
+    if (s.sustenta) sec.append(h('h3', { class: 'es-h3', text: 'O que o texto sustenta' }), h('div', { class: 'ans es-md es-sustenta', html: mdLite(s.sustenta) }));
+    if (s.fora) sec.append(h('h3', { class: 'es-h3' }, 'Fora da Bíblia ', seloChip('binah')), h('div', { class: 'ans es-md', html: mdLite(s.fora) }));
+    if (s.chaves?.length) { const ul = h('ol', { class: 'es-chaves' }); sec.append(ul); s.chaves.forEach(x => { const li = h('li', {}, h('button', { class: 'ref', 'data-goto': x.de, text: x.rot }), x.porque ? h('span', { class: 'soft', text: ' — ' + x.porque }) : null); ul.append(li); verseText(x.de).then(t => { if (t) li.append(h('p', { class: 'es-chave-t', text: '“' + (t.length > 240 ? t.slice(0, 240) + '…' : t) + '”' })); }).catch(() => {}); }); }
     if (s.jornadas?.length) { const jh = h('div', {}); sec.append(jh); estudoJornadas(jh, s.jornadas, p.de); }
     if (s.calcs?.length) sec.append(h('div', { class: 'calc-grid' }, s.calcs.map(calcCard)));
     if (s.palavras?.length) sec.append(h('div', { class: 'es-words' }, s.palavras.map(w => h('div', { class: 'es-word' },
@@ -5974,6 +5998,10 @@ const jsMoment = jsO({ ref: jsS, fato: jsS }), jsMomentQ = jsO({ ref: jsS, quem:
 const jsCalcs = jsA(jsO({ id: jsS, t: jsS, nota: jsS, ent: jsA(jsO({ k: jsS, rot: jsS, v: jsN, min: jsN, max: jsN, p: jsN, un: jsS })), sai: jsA(jsO({ rot: jsS, f: jsS, un: jsS, d: jsN })) }));
 const INV_SCHEMA = {
   passagem: jsO({ de: jsS, ate: jsS }),
+  // o que a pessoa quer de verdade (antes de começar o estudo, para ela confirmar)
+  pedido: jsO({ tipo: { type: 'string', enum: ['passagem', 'tema', 'pergunta'] }, entendi: jsS, pergunta: jsS, pontos: jsA(jsS), titulo: jsS,
+    passagens: jsA(jsO({ de: jsS, ate: jsS, porque: jsS })), partes: jsA({ type: 'string', enum: ['pessoas', 'lugares', 'medidas', 'tempo'] }) }),
+  resposta: jsO({ curta: jsS, explicacao: jsS, visoes: jsA(jsO({ quem: jsS, diz: jsS, base: jsS })), sustenta: jsS, fora: jsS }),
   1: jsO({ titulo: jsS, subtitulo: jsS, resumo: jsS, tags: jsA(jsS), passagem: jsS, geografia: jsS,
     jornadas: jsA(jsO({ t: jsS, stops: jsA(jsS), modo: { type: 'string', enum: ['pe', 'familia', 'jumento', 'corredor', 'caravana', 'cavalo', 'carro', 'carregadores', 'procissao', 'exercito', 'barco'] } })) }),
   pessoas: jsO({ pessoas: jsA(jsO({ s: jsS, nome: jsS, quem: jsS, aqui: jsS, antes: jsA(jsMoment), depois: jsA(jsMoment), liga: jsS })), cruzamentos: jsS }),
@@ -5987,6 +6015,9 @@ const INV_SCHEMA = {
 const invOpts = k => window.ET ? { schema: INV_SCHEMA[k] } : {};
 function invPrompt(parte, ctx, extra = '') {
   const base = `Você é o investigador bíblico do app Escola da Torá, para ${ETN()}. Faça um pente fino da passagem abaixo para um dossiê de estudo em português do Brasil. Use as ferramentas para conferir texto, original, conexões, lugares e jornadas antes de afirmar. Nada de inventar fontes, autores ou números: o que vier do seu conhecimento geral fica como está, e o app marca como "a conferir". Cite versículos no formato "Gn 22:2". Vá fundo: nomes, números, lugares e versículos concretos valem mais do que frases genéricas.\n\n${ctx}\n\n${extra ? extra + '\n\n' : ''}`;
+  if (parte === 'resposta') return base + `PARTE: A RESPOSTA AO PEDIDO. Responda ao pedido de ${ETN()} por completo, cobrindo cada um dos pontos, com versículos (use as ferramentas para conferir o texto antes de citar). Separe com clareza o que o texto bíblico diz, o que a tradição judaica diz, o que a leitura cristã diz e o que é história ou costume de fora da Bíblia. Se o tema divide opiniões, apresente as posições com a base de cada uma e diga com clareza o que a Escritura sustenta e o que é tradição, costume ou opinião. Livros fora dos 66 (Macabeus, Talmud, Josefo) podem ser citados pelo nome da obra. Responda só com um objeto JSON:
+{"curta":"a resposta direta ao pedido em 2-4 frases","explicacao":"markdown: a explicação completa, ponto por ponto, com subtítulos curtos em negrito e os versículos de cada afirmação","visoes":[{"quem":"quem defende essa posição","diz":"o que defende","base":"em que se apoia (versículos, obras)"}],"sustenta":"markdown: o que a Escritura sustenta com clareza e o que é tradição, costume ou opinião","fora":"markdown: os fatos de fora da Bíblia que o pedido envolve (história, datas, costumes), ou vazio se não houver"}
+Até 4 visões; lista vazia se o tema não divide opiniões.`;
   if (parte === 1) return base + `PARTE: A PASSAGEM E A GEOGRAFIA. Responda só com um objeto JSON:
 {"titulo":"nome curto do estudo","subtitulo":"uma linha","resumo":"2-3 frases: 'Em <livro> <cap>, versículos X a Y, ...'","tags":["até 8"],
 "passagem":"markdown: a história em cenas, com os versículos de cada cena e o que cada uma revela",
@@ -6032,18 +6063,47 @@ async function emParalelo(jobs, n) {
   await Promise.all(Array.from({ length: Math.min(n, jobs.length) }, worker));
   if (erro) throw erro;
 }
-async function investigar(q, ui) {
+// Entende o que a pessoa quer (pergunta, tema ou passagem) e monta o plano do estudo para ela confirmar
+async function interpretarPedido(q, signal) {
+  const res = await S.sample.json(`Você é o Binah, do app Escola da Torá. ${ETN()} escreveu nas Descobertas: "${q}".
+Entenda o que ele quer de verdade (a pergunta por trás das palavras, mesmo com termos do dia a dia ou escrita apressada) e planeje um estudo que responda exatamente a isso. Não reduza o pedido a uma palavra: se ele junta dois assuntos, a resposta é sobre a relação entre eles.
+- tipo: "passagem" se ele quer estudar uma história ou trecho (ex.: "a sunamita", "Jonas em Nínive"); "tema" se quer entender um assunto; "pergunta" se faz uma pergunta ou junta assuntos que pedem uma resposta (ex.: "Hanuká e pisca-pisca").
+- entendi: 1 ou 2 frases dirigidas a ele, começando com "Você quer saber" ou "Você quer estudar".
+- pergunta: o pedido reescrito como pergunta clara e completa.
+- pontos: de 3 a 6 pontos que a resposta precisa cobrir (inclua os de fora da Bíblia, se o pedido envolver).
+- passagens: de 1 a 5 passagens-chave, a principal primeiro, com "de" e "ate" em abreviações em português (ex.: "Jo 10:22", "1 Rs 8:1") e "porque" (uma frase). Só livros dos 66 livros da Bíblia. Para tipo "passagem", só o trecho narrativo completo. Se o assunto não está na Bíblia, use as passagens com o princípio mais próximo.
+- partes: das partes opcionais ["pessoas","lugares","medidas","tempo"], só as que ajudam a responder (para tipo "passagem", todas).
+- titulo: nome curto do estudo.
+Responda só com o JSON.`, { modelTier: 'default', signal, schema: INV_SCHEMA.pedido });
+  const rr = x => { const p = parseRef(String(x || '')); if (!p || !p.v) return null; const id = vid(p.b, p.c, p.v); return vExiste(id) ? id : null; };
+  const passagens = [];
+  for (const x of res?.passagens || []) {
+    const de = rr(x.de); if (!de) continue; let ate = rr(x.ate) || de; if (ate < de || split(ate)[0] !== split(de)[0]) ate = de;
+    const [, c0] = split(de), [, c1, v1] = split(ate);
+    if (!passagens.some(y => y.de === de)) passagens.push({ de, ate, rot: refLabel(de, true) + (ate !== de ? '–' + (c1 === c0 ? v1 : c1 + ':' + v1) : ''), porque: String(x.porque || '') });
+  }
+  if (!passagens.length) throw { code: 'sem_passagem' };
+  const tipo = ['passagem', 'tema', 'pergunta'].includes(res?.tipo) ? res.tipo : 'tema';
+  const OPC = ['pessoas', 'lugares', 'medidas', 'tempo'];
+  return { tipo, entendi: String(res?.entendi || ''), pergunta: String(res?.pergunta || q), pontos: (res?.pontos || []).map(String).filter(Boolean).slice(0, 6), titulo: String(res?.titulo || ''),
+    passagens: passagens.slice(0, 5), partes: tipo === 'passagem' ? OPC : (res?.partes || []).filter(k => OPC.includes(k)) };
+}
+async function investigar(q, ui, plano = null) {
   if (INV.busy) return; if (!S.sample) { toast('O investigador não está disponível agora. Recarregue a página e tente de novo.'); return; }
-  INV.busy = true; INV.abort = new AbortController(); ui.start();
+  INV.busy = true; INV.abort = new AbortController(); ui.start(); INV.ultimo = { q, plano };
+  // pergunta ou tema: o estudo abre com a resposta e só traz as partes que ajudam a responder
+  const tema = !!plano && plano.tipo !== 'passagem', quer = k => !tema || plano.partes.includes(k);
   // se a última tentativa desta mesma busca caiu no meio, reaproveita as partes já prontas
-  const SV = INV.salvo?.q === q ? INV.salvo : (INV.salvo = { q, partes: {} });
+  const chave = q + (plano ? '|' + plano.pergunta + '|' + plano.passagens.map(x => x.de).join(',') : '');
+  const SV = INV.salvo?.q === chave ? INV.salvo : (INV.salvo = { q: chave, partes: {} });
   try {
     await GEO.idx().catch(() => null);
     // 1. resolver a passagem
-    ui.step('Localizando a passagem');
-    let r = parseRef(q), de, ate;
+    ui.step(plano ? (tema ? 'Usando as passagens-chave' : 'Localizando a passagem') : 'Localizando a passagem');
+    let r = plano ? null : parseRef(q), de, ate;
     const rng = /(\d+):(\d+)\s*[-–]\s*(?:(\d+):)?(\d+)\s*$/.exec(q);
     if (SV.de) { de = SV.de; ate = SV.ate; }
+    else if (plano) { de = plano.passagens[0].de; ate = plano.passagens[0].ate; }
     else if (r) { de = vid(r.b, r.c, r.v || 1); const nv = S.books[r.b].v[r.c - 1]; ate = rng ? vid(r.b, rng[3] ? +rng[3] : r.c, +rng[4]) : r.v ? (r.ve ? vid(r.b, r.c, r.ve) : vid(r.b, r.c, r.v)) : vid(r.b, r.c, nv); }
     else {
       const res = await S.sample.json(`Qual passagem bíblica corresponde a "${q}"? Responda só com JSON: {"de":"Livro c:v","ate":"Livro c:v"} usando abreviações em português (ex.: "2 Rs 4:8"). Escolha o trecho narrativo completo.`, { modelTier: 'quick', signal: INV.abort.signal, ...invOpts('passagem') });
@@ -6064,9 +6124,17 @@ async function investigar(q, ui) {
     // 2. o que o próprio app calcula: quem aparece, onde mais aparece, o que fica perto
     ui.step('Achando pessoas e lugares no texto original');
     let F = { pessoas: [], lugares: [] };
-    try { F = await fichasDoTrecho(b0, c0, v0, c1, v1, de, ate); } catch (e) { console.warn('fichas', e); }
+    if (quer('pessoas') || quer('lugares')) try { F = await fichasDoTrecho(b0, c0, v0, c1, v1, de, ate); } catch (e) { console.warn('fichas', e); }
+    // as outras passagens-chave e o pedido vão junto para todas as partes
+    let outras = '';
+    if (plano) for (const x of plano.passagens.slice(1, 5)) {
+      const [b, c, v] = split(x.de), [, c2, v2] = split(x.ate); const ptx = await getJSON('data/pt/' + S.books[b].o + '.json').catch(() => null); if (!ptx) continue;
+      const vs = []; for (let cc = c; cc <= c2 && vs.length < 12; cc++) { const arr = ptx[cc - 1] || []; for (let vv = cc === c ? v : 1; vv <= (cc === c2 ? v2 : arr.length) && vs.length < 12; vv++) vs.push(`${S.books[b].a} ${cc}:${vv} ${arr[vv - 1]}`); }
+      outras += `\n${x.rot}${x.porque ? ' — ' + x.porque : ''}\n${vs.join('\n')}\n`;
+    }
+    const pedidoTxt = plano ? `PEDIDO DE ${ETN().toUpperCase()} (o estudo existe para responder a isto): "${q}"\nComo o Binah entendeu: ${plano.pergunta}\nPontos a cobrir:\n${plano.pontos.map(t => '- ' + t).join('\n')}\nTodas as partes servem a esse pedido: foque no que ajuda a responder; o que não tiver relação, deixe curto ou vazio.\n\n` : '';
     if (F.pessoas.length || F.lugares.length) ui.sub(F.pessoas.map(p => p.nome).concat(F.lugares.map(l => l.nome)).slice(0, 10).join(' · '));
-    const ctx = `PASSAGEM: ${rot}\nTEXTO (Bíblia Livre):\n${lines.join('\n')}\n\nLUGARES QUE O APP ACHOU NO TRECHO: ${places.map(p => p.lab + ' (hoje ' + (p.modPt || '?') + ')').join('; ') || 'nenhum'}\n\nO QUE ${ETN().toUpperCase()} JÁ TEM NO CÉREBRO SOBRE ESTE TRECHO:\n${rel.map(n => '• ' + n.titulo + ' (' + n.status + '): ' + (n.texto || '').slice(0, 220)).join('\n') || 'nada ainda'}`;
+    const ctx = pedidoTxt + `PASSAGEM${tema ? ' PRINCIPAL' : ''}: ${rot}\nTEXTO (Bíblia Livre):\n${lines.join('\n')}${outras ? '\n\nOUTRAS PASSAGENS-CHAVE (Bíblia Livre):' + outras : ''}\n\nLUGARES QUE O APP ACHOU NO TRECHO: ${places.map(p => p.lab + ' (hoje ' + (p.modPt || '?') + ')').join('; ') || 'nenhum'}\n\nO QUE ${ETN().toUpperCase()} JÁ TEM NO CÉREBRO SOBRE ESTE TRECHO:\n${rel.map(n => '• ' + n.titulo + ' (' + n.status + '): ' + (n.texto || '').slice(0, 220)).join('\n') || 'nada ainda'}`;
     const fP = 'FICHA DAS PESSOAS (calculada pelo app a partir do hebraico/grego; use estes versículos):\n' + fichaPessoasTxt(F);
     const fL = 'FICHA DOS LUGARES (calculada pelo app: versículos de cada lugar, quem aparece neles e o que fica perto, com a distância em linha reta):\n' + fichaLugaresTxt(F);
     const tools = S.sampleTools ? binahTools().filter(t => t.name !== 'gravar_no_cerebro' && t.name !== 'briefing_de_hoje') : undefined;
@@ -6085,17 +6153,20 @@ async function investigar(q, ui) {
         }
       }
     };
-    await emParalelo([
-      () => call(1, 'Passagem e geografia'),
-      () => call('pessoas', 'Pessoas: antes, durante e depois', fP),
-      () => call('lugares', 'Lugares no tempo e cidades por perto', fL),
-      () => call('medidas', 'Pesos, medidas e quantidades'),
-      () => call('tempo', 'Linha do tempo'),
-      () => call(2, 'Palavras, conexões e tradições', '', true),
-    ], 3);
+    const extra1 = tema ? 'NESTE ESTUDO: o título nomeia o pedido. Em "passagem", mostre o que a passagem principal e as outras passagens-chave dizem sobre o pedido, com os versículos. "geografia" e "jornadas" só se o pedido envolver lugares; senão, texto vazio e lista vazia.' : '';
+    const jobs = [];
+    if (tema) jobs.push(() => call('resposta', 'A resposta ao seu pedido', '', true));
+    jobs.push(() => call(1, tema ? 'Título e passagens' : 'Passagem e geografia', extra1));
+    if (quer('pessoas')) jobs.push(() => call('pessoas', 'Pessoas: antes, durante e depois', fP));
+    if (quer('lugares')) jobs.push(() => call('lugares', 'Lugares no tempo e cidades por perto', fL));
+    if (quer('medidas')) jobs.push(() => call('medidas', 'Pesos, medidas e quantidades'));
+    if (quer('tempo')) jobs.push(() => call('tempo', 'Linha do tempo'));
+    jobs.push(() => call(2, 'Palavras, conexões e tradições', '', true));
+    await emParalelo(jobs, 3);
+    const R = SV.partes.resposta || {};
     const A = SV.partes[1] || {}, B = SV.partes[2] || {}, Pp = SV.partes.pessoas || {}, Lp = SV.partes.lugares || {}, Mp = SV.partes.medidas || {}, Tp = SV.partes.tempo || {};
     const curto = (s, n) => String(s || '').replace(/\s+/g, ' ').slice(0, n);
-    const resumoPartes = `O QUE AS OUTRAS PARTES DO ESTUDO JÁ ACHARAM:
+    const resumoPartes = `O QUE AS OUTRAS PARTES DO ESTUDO JÁ ACHARAM:${tema ? '\nResposta ao pedido: ' + curto(R.curta, 500) + ' ' + curto(R.explicacao, 1200) : ''}
 Pessoas: ${(Pp.pessoas || []).map(p => p.nome + ' — ' + curto(p.aqui, 140)).join(' | ')}
 Cruzamentos: ${curto(Pp.cruzamentos, 700)}
 Lugares: ${(Lp.lugares || []).map(l => l.nome + ' — ' + curto(l.aqui, 120) + ' Depois: ' + (l.depois || []).slice(0, 3).map(d => d.ref + ' ' + d.quem).join(', ')).join(' | ')}
@@ -6120,9 +6191,9 @@ Conexões: ${curto(B.conexoes, 700)}`;
     const achaP = (s, nome) => F.pessoas.find(P => P.s === s) || F.pessoas.find(P => norm(P.nome) === norm(nome || ''));
     const pessoas = [];
     for (const ai of (Pp.pessoas || []).slice(0, 8)) { const P = achaP(String(ai.s || ''), ai.nome); if (!P || pessoas.some(x => x.s === P.s)) continue; pessoas.push({ ...limpa(P), nome: String(ai.nome || P.nome), quem: String(ai.quem || ''), papel: String(ai.aqui || ''), liga: String(ai.liga || ''), antes: momentos(ai.antes, P._vs), depois: momentos(ai.depois, P._vs) }); }
-    for (const P of F.pessoas) if (!pessoas.some(x => x.s === P.s) && pessoas.length < 8) pessoas.push({ ...limpa(P), quem: '', papel: '', liga: '', antes: [], depois: [] });
+    if (quer('pessoas')) for (const P of F.pessoas) if (!pessoas.some(x => x.s === P.s) && pessoas.length < 8) pessoas.push({ ...limpa(P), quem: '', papel: '', liga: '', antes: [], depois: [] });
     const lugares = [];
-    for (const L of F.lugares) {
+    for (const L of quer('lugares') ? F.lugares : []) {
       const ai = (Lp.lugares || []).find(x => norm(String(x.nome || '')) === norm(L.nome)) || (Lp.lugares || []).find(x => norm(L.nome).includes(norm(String(x.nome || '')).split(' ')[0] || '#')) || {};
       const perto = L.perto.map(x => { const f = (Lp.perto || []).find(y => norm(String(y.nome || '')) === norm(x.n) || norm(x.n).startsWith(norm(String(y.nome || '')) || '#')); const ref = f ? rr(f.ref) : null; const { _vs, ...rest } = x; return { ...rest, fato: f ? String(f.fato || '') : '', fref: ref, fok: ref ? new Set(x._vs).has(ref) : false }; });
       lugares.push({ ...limpa(L), perto, hojeTxt: String(ai.hoje || ''), papel: String(ai.aqui || ''), antes: momentos(ai.antes, L._vs, true), depois: momentos(ai.depois, L._vs, true) });
@@ -6133,7 +6204,12 @@ Conexões: ${curto(B.conexoes, 700)}`;
     const linha = { antes: tl(Tp.antes), epoca: tl(Tp.epoca), depois: tl(Tp.depois) };
     const id = 'estudo-' + (norm(String(A.titulo || rot)).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'novo') + '-' + Date.now().toString(36).slice(-4);
     const secoes = [
-      { k: 'passagem', t: 'A passagem', selo: 'texto', md: String(A.passagem || '') },
+      ...(tema ? [
+        { k: 'resposta', t: 'A resposta', selo: 'binah', curta: String(R.curta || ''), md: String(R.explicacao || ''), sustenta: String(R.sustenta || ''), fora: String(R.fora || ''),
+          visoes: (R.visoes || []).slice(0, 4).map(v => ({ quem: String(v?.quem || ''), diz: String(v?.diz || ''), base: String(v?.base || '') })).filter(v => v.diz) },
+        { k: 'chaves', t: 'Passagens-chave', selo: 'texto', chaves: plano.passagens.map(x => ({ de: x.de, ate: x.ate, rot: x.rot, porque: x.porque })) },
+      ] : []),
+      { k: 'passagem', t: tema ? 'O que as passagens dizem' : 'A passagem', selo: 'texto', md: String(A.passagem || '') },
       { k: 'pessoas', t: 'Pessoas: antes, durante e depois', selo: 'texto', md: String(Pp.cruzamentos || ''), pessoas },
       { k: 'geografia', t: 'Geografia e jornadas', selo: jornadas.length ? 'app' : 'binah', md: String(A.geografia || ''), jornadas },
       { k: 'lugares', t: 'Lugares no tempo e cidades por perto', selo: 'app', md: String(Lp.caminhos || ''), lugares },
@@ -6147,7 +6223,7 @@ Conexões: ${curto(B.conexoes, 700)}`;
       { k: 'teses', t: 'Teses e leituras', selo: 'binah', teses: (C.teses || []).slice(0, 5).map(t => ({ t: String(t.t || ''), a: String(t.a || ''), c: String(t.c || '') })) },
       { k: 'sintese', t: 'Síntese', selo: 'binah', md: String(C.sintese || '') },
       { k: 'perguntas', t: 'Para continuar', selo: 'binah', perguntas: (C.perguntas || []).slice(0, 6).map(String) },
-    ].filter(s => s.md || s.jornadas?.length || s.calcs?.length || s.palavras?.length || s.pares?.length || s.teses?.length || s.perguntas?.length || s.pessoas?.length || s.lugares?.length || s.medidas?.length || (s.linha && (s.linha.antes.length || s.linha.epoca.length || s.linha.depois.length)));
+    ].filter(s => s.md || s.curta || s.chaves?.length || s.jornadas?.length || s.calcs?.length || s.palavras?.length || s.pares?.length || s.teses?.length || s.perguntas?.length || s.pessoas?.length || s.lugares?.length || s.medidas?.length || (s.linha && (s.linha.antes.length || s.linha.epoca.length || s.linha.depois.length)));
     const ferr = ['jornada', 'conversor', 'primeira_mencao']; if (b0 === 9 && c0 <= 6 && c1 >= 6) ferr.unshift('seis_passos');
     // nós do cérebro: as descobertas da IA, cada pessoa e cada lugar, ligados a todos os versículos conferidos
     const nos = (C.nos || []).slice(0, 10).map(n => ({ tipo: TIPOS[n.tipo] ? n.tipo : 'descoberta', titulo: String(n.titulo || '').slice(0, 160), texto: String(n.texto || ''), refs: (n.refs || []).map(rr).filter(Boolean) }));
@@ -6156,9 +6232,9 @@ Conexões: ${curto(B.conexoes, 700)}`;
     for (const L of lugares.slice(0, 5)) { if (!L.papel && !L.antes.length && !L.depois.length) continue; nos.push({ tipo: 'geografia', titulo: (L.nome + ' ao longo da Bíblia').slice(0, 160), texto: [L.hojeTxt, L.papel].filter(Boolean).join('\n\n') + linhaMd('Antes', L.antes) + linhaMd('Depois', L.depois) + (L.perto.length ? '\n\n**Perto**: ' + L.perto.slice(0, 6).map(x => x.n + ' (' + String(x.km).replace('.', ',') + ' km)').join(', ') : ''), refs: [...L.aqui.slice(0, 3), ...L.antes.filter(m => m.ok).map(m => m.ref), ...L.depois.filter(m => m.ok).map(m => m.ref)].filter((x, i, a) => a.indexOf(x) === i).slice(0, 16) }); }
     const kids = nos.map((n, k) => ({ id: id + '-n' + (k + 1), ...n }));
     const now = new Date().toISOString();
-    const hubDoc = { tipo: 'estudo', status: 'rascunho', autor: 'binah', titulo: String(A.titulo || rot), subtitulo: String(A.subtitulo || ''), resumo: String(A.resumo || ''), tags: (A.tags || []).slice(0, 8).map(String),
-      passagem: { de, ate, rotulo: rot }, secoes, ferramentas: ferr, filhos: kids.map(k => k.id), refs: [de, ate, ...kids.flatMap(k => k.refs)].filter((x, i, a) => x && a.indexOf(x) === i).slice(0, 24),
-      texto: (String(A.resumo || '') + '\n\n' + String(C.sintese || '')).replace(/\*\*?([^*]+)\*\*?/g, '$1'), fontes: (B.fontes || []).filter(f => f && f.t).slice(0, 10).map(f => ({ t: String(f.t), u: /^https:\/\//.test(f.u || '') ? f.u : '' })), criado: now, atualizado: now };
+    const hubDoc = { tipo: 'estudo', status: 'rascunho', autor: 'binah', titulo: String(A.titulo || plano?.titulo || rot), ...(plano ? { pedido: { texto: q, pergunta: plano.pergunta, entendi: plano.entendi, pontos: plano.pontos } } : {}), subtitulo: String(A.subtitulo || ''), resumo: String(A.resumo || ''), tags: (A.tags || []).slice(0, 8).map(String),
+      passagem: { de, ate, rotulo: rot }, secoes, ferramentas: ferr, filhos: kids.map(k => k.id), refs: [de, ate, ...(plano ? plano.passagens.map(x => x.de) : []), ...kids.flatMap(k => k.refs)].filter((x, i, a) => x && a.indexOf(x) === i).slice(0, 24),
+      texto: ((tema && R.curta ? String(R.curta) + '\n\n' : '') + String(A.resumo || '') + '\n\n' + String(C.sintese || '')).replace(/\*\*?([^*]+)\*\*?/g, '$1'), fontes: (B.fontes || []).filter(f => f && f.t).slice(0, 10).map(f => ({ t: String(f.t), u: /^https:\/\//.test(f.u || '') ? f.u : '' })), criado: now, atualizado: now };
     // 4. gravar
     ui.step('Gravando no cérebro (rascunho)');
     if (!S.db) throw { code: 'sem_db' };
@@ -6181,9 +6257,9 @@ VIEWS.descobertas = (root, opts = {}) => {
   const wrap = h('div', { class: 'wide' });
   const owner = S.isOwner !== false;
   wrap.append(h('div', { class: 'eyebrow', text: 'Descobertas' }), h('h1', { class: 'h1 es-big', text: 'Pente fino na Palavra' }),
-    h('p', { class: 'lede', text: 'Digite uma passagem ou um tema. O Binah lê o texto e o original, acha as pessoas e os lugares e onde mais aparecem na Bíblia (antes e depois), mede distâncias e cidades por perto, converte pesos e medidas, monta a linha do tempo, puxa conexões, tradições e teses e grava tudo no cérebro, ligado aos versículos.' }));
+    h('p', { class: 'lede', text: 'Digite uma passagem, um tema ou uma pergunta. O Binah lê o texto e o original, acha as pessoas e os lugares e onde mais aparecem na Bíblia (antes e depois), mede distâncias e cidades por perto, converte pesos e medidas, monta a linha do tempo, puxa conexões, tradições e teses e grava tudo no cérebro, ligado aos versículos.' }));
   if (owner) {
-    const inp = h('input', { id: 'invQ', class: 'inv-in', type: 'text', autocomplete: 'off', placeholder: '2 Rs 4:8-37 · a sunamita · Noé e a arca · Jonas em Nínive', 'aria-label': 'Passagem ou tema para investigar' });
+    const inp = h('input', { id: 'invQ', class: 'inv-in', type: 'text', autocomplete: 'off', placeholder: '2 Rs 4:8-37 · a sunamita · ou uma pergunta: Hanuká e o pisca-pisca de Natal', 'aria-label': 'Passagem, tema ou pergunta para investigar' });
     const go = h('button', { class: 'btn primary big', text: 'Investigar' });
     const prog = h('div', { class: 'inv-prog', hidden: true });
     const steps = h('ol', { class: 'inv-steps' }); const sub = h('div', { class: 'inv-sub mono' }); const core = h('canvas', { 'aria-hidden': 'true' });
@@ -6218,13 +6294,41 @@ VIEWS.descobertas = (root, opts = {}) => {
       chars(n) { chars = n; pinta(); },
       sub(t) { sub.textContent = t; },
       done(id) { corre(false); tarefas.clear(); $$('li', steps).forEach(li => { li.classList.remove('run'); li.classList.add('ok'); }); fill.style.width = '100%'; pct.textContent = '100%'; sub.textContent = 'Pronto!'; go.disabled = false; stop.hidden = true; toast('Estudo gravado no cérebro (rascunho)'); setTimeout(() => openEstudo(id), 900); },
-      fail(m) { corre(false); tarefas.clear(); $$('li.run', steps).forEach(li => li.classList.remove('run')); sub.textContent = ''; go.disabled = false; steps.append(h('li', { class: 'err', text: m })); stop.className = 'btn primary'; stop.textContent = 'Tentar de novo'; stop.onclick = () => go.click(); },
+      fail(m) { corre(false); tarefas.clear(); $$('li.run', steps).forEach(li => li.classList.remove('run')); sub.textContent = ''; go.disabled = false; steps.append(h('li', { class: 'err', text: m })); stop.className = 'btn primary'; stop.textContent = 'Tentar de novo'; stop.onclick = () => { const u = INV.ultimo; if (u) investigar(u.q, ui, u.plano); else go.click(); }; },
     };
-    go.onclick = () => { const q = inp.value.trim(); if (!q) { inp.focus(); return; } investigar(q, ui); };
+    // versículo ou trecho: começa direto. Palavras: o Binah entende o pedido e mostra para confirmar.
+    const conf = h('div', { class: 'inv-conf card', hidden: true, 'aria-live': 'polite' });
+    const NOME_P = { pessoas: 'Pessoas', lugares: 'Lugares', medidas: 'Pesos e medidas', tempo: 'Linha do tempo' };
+    const mostraPlano = (q, P) => {
+      conf.innerHTML = '';
+      const partes = P.tipo === 'passagem' ? ['Pente fino completo da passagem'] : ['A resposta', 'Passagens-chave', ...P.partes.map(k => NOME_P[k]), 'Palavras, conexões e tradições', 'Síntese'];
+      conf.append(h('div', { class: 'eyebrow', text: 'Entendi assim' }),
+        h('p', { class: 'inv-conf-t', text: P.entendi || P.pergunta }),
+        P.tipo !== 'passagem' && P.pontos.length ? h('div', {}, h('div', { class: 'inv-conf-h', text: 'O estudo vai responder' }), h('ul', { class: 'inv-conf-l' }, P.pontos.map(t => h('li', { text: t })))) : null,
+        h('div', { class: 'inv-conf-h', text: P.passagens.length > 1 ? 'Passagens-chave' : 'Passagem' }),
+        h('ul', { class: 'inv-conf-ps' }, P.passagens.map(x => h('li', {}, h('button', { class: 'ref', type: 'button', text: x.rot, onclick: e => { e.stopPropagation(); versoPopup(x.de); } }), x.porque ? h('span', { class: 'soft', text: ' ' + x.porque }) : null))),
+        h('div', { class: 'inv-conf-h', text: 'Partes do estudo' }), h('div', { class: 'inv-conf-chips' }, partes.map(t => h('span', { class: 'chip', text: t }))),
+        h('div', { class: 'inv-conf-b' },
+          h('button', { class: 'btn primary', type: 'button', text: 'Começar o estudo', onclick: () => { conf.hidden = true; investigar(q, ui, P); } }),
+          h('button', { class: 'btn', type: 'button', text: 'Ajustar o pedido', onclick: () => { conf.hidden = true; inp.focus(); inp.select(); } })),
+        h('p', { class: 'muted', style: 'font-size:12px;margin:10px 0 0', text: 'Entender o pedido usou 1 pedido de IA; o estudo usa mais alguns.' }));
+      conf.hidden = false; conf.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+    go.onclick = async () => {
+      const q = inp.value.trim(); if (!q) { inp.focus(); return; }
+      if (INV.busy) return;
+      if (parseRef(q)) { conf.hidden = true; investigar(q, ui); return; }
+      if (!S.sample) { toast('O investigador não está disponível agora. Recarregue a página e tente de novo.'); return; }
+      prog.hidden = true; conf.innerHTML = ''; conf.hidden = false; go.disabled = true;
+      conf.append(h('div', { class: 'inv-conf-load' }, h('i', { 'aria-hidden': 'true' }), 'O Binah está entendendo o seu pedido…'));
+      try { const P = await interpretarPedido(q); mostraPlano(q, P); }
+      catch (e) { conf.innerHTML = ''; conf.append(h('p', { class: 'inv-conf-err', text: e?.et && e?.message ? e.message : e?.code === 'sem_passagem' ? 'Não achei passagens bíblicas para esse pedido. Tente escrever de outro jeito.' : 'A IA não respondeu agora. Tente de novo.' })); }
+      finally { go.disabled = false; }
+    };
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go.click(); } });
     wrap.append(h('section', { class: 'inv' }, h('div', { class: 'inv-row' }, inp, go),
-      h('div', { class: 'sugs', style: 'margin-top:10px' }, ['2 Rs 4:8-37', 'Jonas em Nínive', 'Elias no Carmelo', 'Rute e Boaz em Belém', 'A travessia do Mar Vermelho', 'Paulo em Malta'].map(t => h('button', { class: 'sug', text: t, onclick: () => { inp.value = t; go.click(); } }))),
-      h('p', { class: 'muted', style: 'font-size:12.5px;margin:10px 0 0', text: 'O investigador usa o conhecimento do Binah (uma IA) e não navega na internet: o que vier dele aparece com o selo "a conferir". Cada investigação usa vários pedidos de IA do seu dia.' }), window.ET ? ET.medidor() : null, prog));
+      h('div', { class: 'sugs', style: 'margin-top:10px' }, ['2 Rs 4:8-37', 'Jonas em Nínive', 'Elias no Carmelo', 'Por que Jesus foi à Festa da Dedicação?', 'A travessia do Mar Vermelho', 'O que a Bíblia diz sobre o sábado?'].map(t => h('button', { class: 'sug', text: t, onclick: () => { inp.value = t; go.click(); } }))),
+      h('p', { class: 'muted', style: 'font-size:12.5px;margin:10px 0 0', text: 'O investigador usa o conhecimento do Binah (uma IA) e não navega na internet: o que vier dele aparece com o selo "a conferir". Cada investigação usa vários pedidos de IA do seu dia.' }), window.ET ? ET.medidor() : null, conf, prog));
   }
   // biblioteca
   const lib = h('section', { style: 'margin-top:26px' }, h('div', { class: 'sec-head', style: 'margin-bottom:12px' }, h('h2', { text: 'Estudos' }), h('span', { id: 'libN', text: '' })), h('div', { id: 'libHost', class: 'es-lib' }));
