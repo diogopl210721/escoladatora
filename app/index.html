@@ -304,6 +304,16 @@ details summary{cursor:pointer;color:var(--soft);font-size:13px}
 .fs-sheet-body{padding:6px 16px 20px;display:flex;flex-direction:column;gap:6px}
 .fs-sheet-x{position:sticky;top:8px;float:right;margin:8px 10px 0 0;z-index:2}
 .arc-fs,.hud-fs{position:absolute;inset:0;touch-action:none}
+/* arcos vivos dentro da aba */
+.arc-grade{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:16px;align-items:start}
+@media (min-width:1000px){.arc-grade{grid-template-columns:minmax(0,1fr) 340px}.arc-info{position:sticky;top:12px;max-height:calc(100vh - 140px);overflow-y:auto}}
+.arc-caixa{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#03070E}
+.arc-caixa .fs-tools{padding:10px 12px;background:#050b15}
+.arc-palco-w{position:relative;height:clamp(320px,calc(100vh - 300px),620px)}
+@media (max-width:720px){.arc-palco-w{height:clamp(300px,52svh,520px)}}
+.arc-info{display:block;min-width:0}
+.arc-info .card{margin:0;width:100%}
+.arc-info .tl{grid-template-columns:minmax(0,1fr) 96px}
 .arc-fs{overflow:hidden;background:#03070E}
 .arc-load{display:none;position:absolute;z-index:2;left:50%;top:14px;transform:translateX(-50%);align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#06111fd9;border:1px solid #2a4166;color:#CFE9FF;font-size:12.5px;font-weight:700;white-space:nowrap;pointer-events:none}
 .loading>.arc-load{display:inline-flex}
@@ -2115,6 +2125,7 @@ function setTab(tab, opts = {}) {
   // estudo compartilhado: o visitante só vê o estudo; o resto do app pede a conta
   if (window.ET?.visitante && !(tab === 'descobertas' && opts.estudo === ET.visitante.id)) { if (S.tab) ET.convite(); else setTab('descobertas', { estudo: ET.visitante.id }); return; }
   if (FS.isOpen) FS.close();
+  if (ARC.full) { ARC.full.halt(); ARC.full = null; }
   if (LER.isOpen) LER.fechar(true);
   if (NEURO.docked) NEURO.undock(); else if (NEURO.isOpen) NEURO.close();
   if (matchMedia('(max-width:1080px)').matches && !$('#panel').hidden) closePanel();
@@ -2752,46 +2763,13 @@ function arcTools() {
   const mode = h('button', { class: 'fs-pill', 'aria-pressed': String(S.arcMode === 'atnt'), text: 'Só AT ↔ NT', onclick: () => { S.arcMode = S.arcMode === 'atnt' ? 'todos' : 'atnt'; mode.setAttribute('aria-pressed', String(S.arcMode === 'atnt')); ARC.redraw(); } });
   return [selB, selC, zOut, zIn, zFit, h('label', { class: 'fs-range' }, 'Força', rng), mode, h('span', { class: 'mono muted', id: 'arcCount', style: 'font-size:11.5px;white-space:nowrap' })];
 }
-function openArcFull(opts = {}) {
-  let ro = null;
-  FS.open({
-    title: 'Arcos · 344.799 referências cruzadas', tools: arcTools(),
-    mount: stage => {
-      const wrap = h('div', { class: 'arc-fs loading' });
-      const cv = h('canvas', { role: 'img', 'aria-label': 'Arcos das referências cruzadas; use pinça ou roda para ampliar' });
-      const tip = h('div', { class: 'arc-tip', hidden: true });
-      wrap.append(cv, tip, h('span', { class: 'arc-load', 'aria-live': 'polite' }, h('i'), 'Desenhando as ligações…'), h('div', { class: 'fs-hint', text: 'Pinça ou roda para ampliar · arraste para os lados · toque num capítulo' }));
-      stage.append(wrap);
-      const V = makeArcView(cv, true); ARC.full = V;
-      if (window.d3) {
-        V.zoom = d3.zoom().scaleExtent([1, 160])
-          .on('start', () => V.halt())
-          .on('zoom', e => { V.k = e.transform.k; V.tx = e.transform.x; V.request(); })
-          .on('end', () => V.settle());
-        d3.select(cv).call(V.zoom).on('dblclick.zoom', null);
-      }
-      ro = new ResizeObserver(() => V.resize()); ro.observe(wrap);
-      V.resize();
-      cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(); const i = V.idxAt(e.clientX - r.left); if (i >= 0) selectArcChapter(i); });
-      cv.addEventListener('mousemove', e => {
-        const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, i = V.idxAt(x);
-        if (i < 0) { tip.hidden = true; return; }
-        const [b, c] = S.chapters[i]; tip.hidden = false; tip.textContent = S.books[b].n + ' ' + c; tip.style.left = x + 'px'; tip.style.top = y + 'px';
-      });
-      cv.addEventListener('mouseleave', () => { tip.hidden = true; });
-      if (opts.verse) selectArcVerse(opts.verse).then(() => showArcSheet());
-      else if (S.arcSel) showArcSheet();
-    },
-    onClose: () => { ro?.disconnect(); ARC.full?.halt(); ARC.full = null; ARC.thumb?.request(); renderArcInfo(); },
-  });
-}
 function arcZoomTo(i, span = 30) {
   const V = ARC.full; if (!V?.zoom) { V?.request(); return; }
   const g = V.g(); const k = Math.max(1, Math.min(160, (V.W - 2 * g.pad) / (Math.max(6, span * 1.4) * g.dx)));
   const tx = Math.min(0, Math.max(-(V.W - 2 * g.pad) * (k - 1), V.W / 2 - g.pad - (i + 0.5) * g.dx * k));
   d3.select(V.canvas).transition().duration(420).call(V.zoom.transform, d3.zoomIdentity.translate(tx, 0).scale(k));
 }
-function selectArcChapter(i) { S.arcSel = { kind: 'chap', i }; ARC.paint(); renderArcInfo(); if (ARC.full) showArcSheet(); }
+function selectArcChapter(i) { S.arcSel = { kind: 'chap', i }; ARC.paint(); renderArcInfo(); }
 async function selectArcVerse(id) {
   await ARC.ensure();
   const [b, c, v] = split(id); const xr = await getJSON('data/xref/' + S.books[b].o + '.json');
@@ -2815,38 +2793,61 @@ function arcInfoBody(host, inFull) {
     h('p', { class: 'soft', style: 'margin:4px 0 10px;font-size:13.5px', text: fmt(links.length) + ' capítulos ligados' + (sel.kind === 'chap' ? ' · ' + S.books[b].v[c - 1] + ' versículos' : '') }),
     h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px' },
       h('button', { class: 'btn primary', text: 'Abrir no Leitor', onclick: () => { FS.close(); if (sel.kind === 'verse') gotoVerse(sel.id); else { S.book = b; S.chap = c; store.set('book', b); store.set('chap', c); setTab('leitor'); } } }),
-      inFull ? h('button', { class: 'btn', text: 'Ampliar aqui', onclick: () => arcZoomTo(sel.i) }) : h('button', { class: 'btn', text: 'Explorar em tela cheia', onclick: () => openArcFull() }),
-      h('button', { class: 'btn ghost', text: 'Limpar', onclick: () => { S.arcSel = null; ARC.paint(); renderArcInfo(); if (inFull) FS.sheet(null); } })),
+      h('button', { class: 'btn', text: 'Ampliar aqui', onclick: () => arcZoomTo(sel.i) }),
+      h('button', { class: 'btn ghost', text: 'Limpar', onclick: () => { S.arcSel = null; ARC.paint(); renderArcInfo(); } })),
     h('div', { class: 'sec-title', text: 'Ligações mais fortes' }),
     h('div', { class: 'toplinks' }, links.slice(0, 12).map(([ci, w]) => { const [b2, c2] = S.chapters[ci];
-      return h('button', { class: 'tl', onclick: () => { selectArcChapter(ci); if (inFull) arcZoomTo(ci); } },
+      return h('button', { class: 'tl', onclick: () => { selectArcChapter(ci); arcZoomTo(ci); } },
         h('span', {}, S.books[b2].n + ' ' + c2, h('span', { class: 'muted mono', style: 'font-size:11px', text: '  ' + w })),
         h('span', { class: 'bar', style: 'width:' + Math.max(6, 110 * w / max) + 'px' })); })));
 }
-function showArcSheet() { if (!S.arcSel) { FS.sheet(null); return; } FS.sheet(body => arcInfoBody(body, true)); }
 function renderArcInfo() {
   const info = $('#arcInfo'); if (!info) return; info.innerHTML = '';
-  if (!S.arcSel || !S.arcs) { info.append(h('p', { class: 'muted', style: 'margin:0;font-size:13.5px', text: 'Toque no gráfico para abrir em tela cheia. Lá você amplia com dois dedos, arrasta para os lados e toca num capítulo para isolar as ligações dele.' })); return; }
-  const card = h('div', { class: 'card' }); arcInfoBody(card, false); info.append(card);
+  if (!S.arcSel || !S.arcs) { info.append(h('div', { class: 'card arc-dica' }, h('div', { class: 'eyebrow', text: 'Como usar' }), h('p', { class: 'soft', style: 'margin:6px 0 0;font-size:13.5px;line-height:1.55', text: FINE ? 'Clique num capítulo (as barras embaixo) para isolar as ligações dele. Para ampliar: Ctrl + roda do mouse ou os botões + e −; arraste para os lados.' : 'Toque num capítulo (as barras embaixo) para isolar as ligações dele. Amplie com dois dedos e arraste para os lados.' }))); return; }
+  const card = h('div', { class: 'card' }); arcInfoBody(card, true); info.append(card);
 }
 VIEWS.arcos = async (root, opts = {}) => {
   const wrap = h('div', { class: 'wide' });
   wrap.append(h('div', { class: 'eyebrow', text: 'Referências cruzadas' }),
     h('h1', { class: 'h1', text: 'A Bíblia como um livro de conexões' }),
     h('p', { class: 'lede', text: 'Cada barra embaixo é um dos 1.189 capítulos; cada arco liga dois capítulos com referências cruzadas, e a cor indica a distância entre eles.' }));
-  const thumb = h('button', { class: 'thumb loading', 'aria-label': 'Abrir os arcos em tela cheia' });
-  const cv = h('canvas', { role: 'img', 'aria-label': 'Miniatura dos arcos de referências cruzadas' });
-  thumb.append(cv, h('span', { class: 'arc-load', 'aria-live': 'polite' }, h('i'), 'Desenhando as ligações…'), h('span', { class: 'thumb-cta' }, h('span', { html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>' }), 'Explorar em tela cheia'));
-  thumb.onclick = () => openArcFull();
-  wrap.append(h('div', { style: 'margin-top:16px' }, thumb), h('div', { id: 'arcInfo', style: 'margin-top:14px' }),
+  // os arcos vivos moram aqui mesmo (sem miniatura nem tela cheia separada): amplia, arrasta e toca num capítulo
+  const cv = h('canvas', { role: 'img', 'aria-label': 'Arcos das referências cruzadas; amplie com pinça, Ctrl + roda ou os botões' });
+  const tip = h('div', { class: 'arc-tip', hidden: true });
+  const palco = h('div', { class: 'arc-fs arc-palco loading' }, cv, tip, h('span', { class: 'arc-load', 'aria-live': 'polite' }, h('i'), 'Desenhando as ligações…'),
+    h('div', { class: 'fs-hint', text: FINE ? 'Ctrl + roda para ampliar · arraste para os lados · clique num capítulo' : 'Pinça para ampliar · arraste para os lados · toque num capítulo' }));
+  const barra = h('div', { class: 'fs-tools arc-barra' });
+  wrap.append(h('div', { class: 'arc-grade' },
+    h('div', { class: 'arc-caixa' }, barra, h('div', { class: 'arc-palco-w' }, palco)),
+    h('aside', { id: 'arcInfo', class: 'arc-info' })),
     h('p', { class: 'muted', style: 'font-size:12.5px;margin-top:16px', text: 'Dados: 344.799 referências cruzadas do OpenBible.info (votos da comunidade, CC BY), agregadas por capítulo. Inspirado no pôster de Chris Harrison e Christoph Römhild (2007), que usou outro conjunto, com 63.779 referências.' }));
   root.append(wrap);
-  try { await ARC.ensure(); } catch { $('#arcInfo')?.append(h('div', { class: 'empty', text: 'Não consegui carregar os dados dos arcos.' })); return; }
+  try { await ARC.ensure(); } catch { $('#arcInfo')?.append(h('div', { class: 'empty', text: 'Não consegui carregar os dados dos arcos.' })); palco.classList.remove('loading'); return; }
   if (!cv.isConnected) return;
-  const V = makeArcView(cv, false); ARC.thumb = V;
-  const ro = new ResizeObserver(() => { if (!cv.isConnected) { ro.disconnect(); ARC.thumb = null; return; } V.resize(); }); ro.observe(thumb);
+  arcTools().forEach(t => barra.append(t));
+  const V = makeArcView(cv, true); ARC.full = V;
+  if (window.d3) {
+    V.zoom = d3.zoom().scaleExtent([1, 160])
+      // na página a roda do mouse rola a página; Ctrl + roda (ou pinça no trackpad) amplia
+      .filter(e => e.type === 'wheel' ? e.ctrlKey : (!e.ctrlKey || e.type === 'touchstart') && !e.button)
+      .on('start', () => V.halt())
+      .on('zoom', e => { V.k = e.transform.k; V.tx = e.transform.x; V.request(); })
+      .on('end', () => V.settle());
+    d3.select(cv).call(V.zoom).on('dblclick.zoom', null);
+  }
+  let dica = false;
+  cv.addEventListener('wheel', e => { if (!e.ctrlKey && !dica) { dica = true; toast('Para ampliar os arcos: Ctrl + roda do mouse ou os botões + e −.'); } }, { passive: true });
+  const ro = new ResizeObserver(() => { if (!cv.isConnected) { ro.disconnect(); V.halt(); if (ARC.full === V) ARC.full = null; return; } V.resize(); }); ro.observe(palco);
   V.resize(); renderArcInfo();
-  if (opts.verse) { await selectArcVerse(opts.verse); openArcFull({ verse: opts.verse }); }
+  cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(); const i = V.idxAt(e.clientX - r.left); if (i >= 0) selectArcChapter(i); });
+  cv.addEventListener('mousemove', e => {
+    const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, i = V.idxAt(x);
+    if (i < 0) { tip.hidden = true; return; }
+    const [b, c] = S.chapters[i]; tip.hidden = false; tip.textContent = S.books[b].n + ' ' + c; tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  });
+  cv.addEventListener('mouseleave', () => { tip.hidden = true; });
+  if (opts.verse) { await selectArcVerse(opts.verse); const [b, c] = split(opts.verse); setTimeout(() => arcZoomTo(chapIndex(b, c)), 60); }
+  else if (S.arcSel) renderArcInfo();
 };
 
 /* ================= BRAIN ================= */
@@ -4397,7 +4398,7 @@ VIEWS.inicio = root => {
   };
   const mods = [
     ['leitor', 'Leitor', 'Hebraico e grego palavra por palavra, com Strong, morfologia, gematria e primeira menção.', fmt(nVers) + ' versículos', '#62B2E6', () => setTab('leitor')],
-    ['arcos', 'Arcos', 'As referências cruzadas da Bíblia inteira, em tela cheia com zoom.', '344.799 ligações', '#3BE3F0', () => setTab('arcos')],
+    ['arcos', 'Arcos', 'As referências cruzadas da Bíblia inteira, com zoom e toque nos capítulos.', '344.799 ligações', '#3BE3F0', () => setTab('arcos')],
     ['mapa', 'Mapa e jornadas', 'Relevo, lugares e o cálculo de cada viagem: distância, dias e dificuldades.', '1.335 lugares', '#FF9A3C', () => openMapFull({})],
     ['cerebro', 'Segundo Cérebro', 'Tudo o que você descobre, ligado aos versículos, com o Binah para conversar.', fmt(S.brain.size) + ' nós', '#B484F7', () => setTab('cerebro')],
     ['lupa', 'Descobertas', 'Pente fino numa passagem: geografia, contas, palavras, tradições e teses, gravado no cérebro.', [...S.brain.values()].filter(n => n.tipo === 'estudo').length + ' estudos', '#F2B648', () => setTab('descobertas')],
