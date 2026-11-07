@@ -304,6 +304,18 @@ details summary{cursor:pointer;color:var(--soft);font-size:13px}
 .fs-sheet-body{padding:6px 16px 20px;display:flex;flex-direction:column;gap:6px}
 .fs-sheet-x{position:sticky;top:8px;float:right;margin:8px 10px 0 0;z-index:2}
 .arc-fs,.hud-fs{position:absolute;inset:0;touch-action:none}
+/* sugestões de lugares e balão do mapa */
+.ac-lugar{position:fixed;z-index:85;max-height:min(330px,46vh);overflow-y:auto;overscroll-behavior:contain;background:var(--raised);border:1px solid var(--line2);border-radius:12px;box-shadow:0 16px 44px #000b;padding:4px}
+.ac-it{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border-radius:8px;background:none;border:0;color:var(--text);cursor:pointer}
+.ac-it:hover,.ac-it[aria-selected="true"]{background:var(--hover2)}
+.ac-it b{font-weight:600;font-size:14px}
+.ac-sub{font-size:12px;color:var(--muted)}
+.ac-vazio{padding:10px 12px;font-size:13px;color:var(--muted)}
+.map-pop{position:absolute;z-index:4;width:max-content;max-width:min(300px,calc(100% - 16px));background:#06111ff5;border:1px solid #2a4166;border-radius:12px;padding:10px 12px;box-shadow:0 12px 32px #000c;color:#EAF6FF}
+.map-pop-t b{display:block;font-size:15px}
+.map-pop-t span{display:block;font-size:12px;color:#9FB3CC;margin-top:2px}
+.map-pop-b{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.map-pop-b .btn{padding:7px 12px;font-size:13px}
 /* arcos vivos dentro da aba */
 .arc-grade{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:16px;align-items:start}
 @media (min-width:1000px){.arc-grade{grid-template-columns:minmax(0,1fr) 340px}.arc-info{position:sticky;top:12px;max-height:calc(100vh - 140px);overflow-y:auto}}
@@ -3604,7 +3616,7 @@ function makeMap(canvas) {
     const T = M.tf, x = (px - T.x) / T.k, y = (py - T.y) / T.k; let best = null, bd = Infinity;
     const cand = [...M.marks.map(m => m.p), ...(M.journey ? M.journey.stops : []), ...M.visible];
     for (const p of cand) { const [px2, py2] = M.proj(p.lon, p.lat); const dd = (px2 - x) ** 2 + (py2 - y) ** 2; if (dd < bd) { bd = dd; best = p; } }
-    return best && Math.sqrt(bd) * T.k < 18 ? best : null;
+    return best && Math.sqrt(bd) * T.k < (FINE ? 18 : 28) ? best : null;
   };
   M.visible = [];
   return M;
@@ -3708,23 +3720,58 @@ function journeyCard(J, ctxRef, { compact } = {}) {
 }
 
 /* ---------- full-screen map / journey ---------- */
-let placeListEl = null;
-function placeDatalist() {
-  if (placeListEl) return placeListEl;
-  placeListEl = h('datalist', { id: 'placeList' }, [...new Set([...Object.keys(GEO.data.alias), ...GEO.data.P.filter(p => p.canon == null).map(p => p.lab)])].sort((a, b) => a.localeCompare(b, 'pt')).map(n => h('option', { value: n })));
-  document.body.append(placeListEl); return placeListEl;
+// Sugestões de lugares enquanto a pessoa digita (a lista do próprio navegador quase não aparece no celular).
+// varios: o campo aceita vários nomes separados por vírgula e a sugestão vale para o último.
+function autoLugar(inp, aoEscolher, { varios = false } = {}) {
+  const box = h('div', { class: 'ac-lugar', role: 'listbox', hidden: true });
+  document.body.append(box);
+  inp.setAttribute('autocomplete', 'off'); inp.setAttribute('role', 'combobox'); inp.setAttribute('aria-autocomplete', 'list'); inp.setAttribute('aria-expanded', 'false');
+  let itens = [], ativo = -1;
+  const termo = () => (varios ? inp.value.split(/[,;]/).pop() : inp.value).trim();
+  const fecha = () => { box.hidden = true; ativo = -1; inp.setAttribute('aria-expanded', 'false'); };
+  const marca = () => [...box.children].forEach((b, i) => { b.setAttribute('aria-selected', String(i === ativo)); if (i === ativo) b.scrollIntoView({ block: 'nearest' }); });
+  const lugar = () => {
+    const r = inp.getBoundingClientRect(), w = Math.min(innerWidth - 16, Math.max(r.width, 270));
+    box.style.width = w + 'px'; box.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px'; box.style.top = (r.bottom + 4) + 'px';
+  };
+  const escolhe = p => {
+    if (!p) return;
+    if (varios) { const partes = inp.value.split(/[,;]/).map(x => x.trim()); partes[partes.length - 1] = p.lab; inp.value = partes.filter(Boolean).join(', '); }
+    else inp.value = p.lab;
+    fecha(); aoEscolher?.(p);
+  };
+  const mostra = () => {
+    const t = termo(); itens = t ? findPlaces(t, 8) : [];
+    box.innerHTML = '';
+    if (!t) { fecha(); return; }
+    if (!itens.length) box.append(h('div', { class: 'ac-vazio', text: 'Nenhum lugar com esse nome.' }));
+    itens.forEach((p, i) => box.append(h('button', { type: 'button', class: 'ac-it', role: 'option', 'aria-selected': 'false', onmousedown: e => e.preventDefault(), onclick: () => escolhe(p) },
+      h('b', { text: p.lab }), h('span', { class: 'ac-sub', text: [p.t, p.modPt ? 'hoje: ' + p.modPt : '', fmt(p.nv) + (p.nv === 1 ? ' versículo' : ' versículos')].filter(Boolean).join(' · ') }))));
+    ativo = itens.length ? 0 : -1; marca();
+    lugar(); box.hidden = false; inp.setAttribute('aria-expanded', 'true');
+  };
+  inp.addEventListener('input', mostra);
+  inp.addEventListener('focus', () => { if (termo() && inp.value.trim() !== inp.dataset.escolhido) mostra(); });
+  inp.addEventListener('blur', () => setTimeout(fecha, 160));
+  inp.addEventListener('keydown', e => {
+    if (box.hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { if (!itens.length) return; e.preventDefault(); ativo = (ativo + (e.key === 'ArrowDown' ? 1 : -1) + itens.length) % itens.length; marca(); }
+    else if (e.key === 'Enter' && itens.length) { e.preventDefault(); e.stopImmediatePropagation(); escolhe(itens[Math.max(0, ativo)]); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fecha(); }
+  });
+  addEventListener('resize', () => { if (!box.hidden) lugar(); });
+  return { fecha, remove: () => box.remove() };
 }
 async function openMapFull(opts = {}) {
   let D; try { D = await GEO.ensure(); } catch { toast('Não consegui carregar o mapa.'); return; }
-  placeDatalist();
   const st = { a: opts.a || null, b: opts.b || null, via: opts.via || [], modo: opts.modo || store.get('modo', 'pe'), kmdia: null, ctxRef: opts.ctxRef || null };
-  const inA = h('input', { class: 'fs-search', list: 'placeList', placeholder: 'Origem', value: st.a?.lab || '', 'aria-label': 'Origem' });
+  const inA = h('input', { class: 'fs-search', placeholder: 'Origem', value: st.a?.lab || '', 'aria-label': 'Origem' });
   const inV = h('input', { class: 'fs-search', placeholder: 'Passando por (opcional)', value: st.via.map(p => p.lab).join(', '), 'aria-label': 'Paradas no caminho, separadas por vírgula' });
-  const inB = h('input', { class: 'fs-search', list: 'placeList', placeholder: 'Destino', value: st.b?.lab || '', 'aria-label': 'Destino' });
+  const inB = h('input', { class: 'fs-search', placeholder: 'Destino', value: st.b?.lab || '', 'aria-label': 'Destino' });
   const swap = h('button', { class: 'iconbtn', 'aria-label': 'Inverter origem e destino', text: '⇄' });
   const modo = h('select', { class: 'fs-sel', 'aria-label': 'Meio de viagem' }, MODOS.map(m => h('option', { value: m.k, text: m.n }))); modo.value = st.modo;
   const go = h('button', { class: 'fs-pill', 'aria-pressed': 'true', text: 'Calcular' });
-  let M = null, ro = null;
+  let M = null, ro = null, mapPop = null;
   const resolve = (inp, cur) => (cur && inp.value.trim() === cur.lab) ? cur : (inp.value.trim() ? findPlaces(inp.value, 1)[0] || null : null);
   const resolveVia = () => {
     const names = inV.value.split(/[,;]+/).map(x => x.trim()).filter(Boolean), out = [], miss = [];
@@ -3758,23 +3805,48 @@ async function openMapFull(opts = {}) {
   };
   swap.onclick = () => { [inA.value, inB.value] = [inB.value, inA.value]; [st.a, st.b] = [st.b, st.a]; st.via.reverse(); inV.value = st.via.map(p => p.lab).join(', '); if (st.a && st.b) run(); };
   go.onclick = () => run(); modo.onchange = () => { st.kmdia = null; if (st.a && st.b) run(false); };
+  const usar = (k, p) => {
+    const outro = k === 'a' ? st.b : st.a;
+    if (outro && outro.i === p.i) { toast('Escolha um lugar diferente ' + (k === 'a' ? 'do destino.' : 'da origem.')); return false; }
+    st[k] = p; const inp = k === 'a' ? inA : inB; inp.value = p.lab; inp.dataset.escolhido = p.lab;
+    if (st.a && st.b) run(); else { toast(k === 'a' ? 'Agora escolha o destino: digite ou toque no mapa.' : 'Agora escolha a origem: digite ou toque no mapa.'); }
+    return true;
+  };
+  const acs = [autoLugar(inA, p => { if (!usar('a', p)) inA.value = ''; else if (!st.b) inB.focus(); }), autoLugar(inB, p => { if (!usar('b', p)) inB.value = ''; else if (!st.a) inA.focus(); }),
+    autoLugar(inV, () => { if (st.a && st.b) run(false); }, { varios: true })];
   [inA, inV, inB].forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); run(); } }));
   FS.open({
     title: 'Mapa bíblico · jornadas', tools: [inA, swap, inB, inV, modo, go], wrap: true,
     mount: stage => {
       const wrap = h('div', { class: 'arc-fs' }); const cv = h('canvas', { role: 'img', 'aria-label': 'Mapa com relevo, lugares bíblicos e a jornada calculada' });
-      wrap.append(cv, h('div', { class: 'fs-hint', style: 'bottom:34px', text: 'Pinça para ampliar · arraste · toque num lugar' })); stage.append(wrap);
+      const pop = h('div', { class: 'map-pop', hidden: true, role: 'dialog' });
+      wrap.append(cv, pop, h('div', { class: 'fs-hint', style: 'bottom:34px', text: 'Pinça para ampliar · arraste · toque numa cidade para usá-la como origem ou destino' })); stage.append(wrap);
+      // balão em cima da cidade tocada: um toque em Origem ou Destino já preenche (e calcula quando tiver os dois)
+      mapPop = (p, x, y) => {
+        pop.innerHTML = '';
+        const prox = !st.a || (st.a && st.b) ? 'a' : 'b';
+        pop.append(h('div', { class: 'map-pop-t' }, h('b', { text: p.lab }), h('span', { text: [p.t, p.modPt ? 'hoje: ' + p.modPt : ''].filter(Boolean).join(' · ') })),
+          h('div', { class: 'map-pop-b' },
+            h('button', { class: 'btn' + (prox === 'a' ? ' primary' : ''), type: 'button', text: 'Origem', onclick: () => { if (usar('a', p)) pop.hidden = true; } }),
+            h('button', { class: 'btn' + (prox === 'b' ? ' primary' : ''), type: 'button', text: 'Destino', onclick: () => { if (usar('b', p)) pop.hidden = true; } }),
+            st.a && st.b && st.a.i !== p.i && st.b.i !== p.i ? h('button', { class: 'btn', type: 'button', text: 'Passar aqui', onclick: () => { st.via = [...st.via, p]; inV.value = st.via.map(x => x.lab).join(', '); pop.hidden = true; run(false); } }) : null,
+            h('button', { class: 'btn ghost', type: 'button', text: 'Detalhes', onclick: () => { pop.hidden = true; showPlaceSheet(p, M, st, { inA, inB, inV }, run); } })));
+        pop.hidden = false;
+        const W = wrap.clientWidth, H = wrap.clientHeight, w = pop.offsetWidth, hh = pop.offsetHeight;
+        pop.style.left = Math.max(8, Math.min(W - w - 8, x - w / 2)) + 'px';
+        pop.style.top = (y - hh - 16 > 8 ? y - hh - 16 : Math.min(H - hh - 8, y + 16)) + 'px';
+      };
       M = makeMap(cv); GEO.map = M;
-      if (window.d3) { M.zoom = d3.zoom().scaleExtent([0.15, 60]).on('zoom', e => { M.tf = { k: e.transform.k, x: e.transform.x, y: e.transform.y }; M.request(); }); d3.select(cv).call(M.zoom).on('dblclick.zoom', null); }
+      if (window.d3) { M.zoom = d3.zoom().scaleExtent([0.15, 60]).on('zoom', e => { M.tf = { k: e.transform.k, x: e.transform.x, y: e.transform.y }; M.request(); if (e.sourceEvent) pop.hidden = true; }); d3.select(cv).call(M.zoom).on('dblclick.zoom', null); }
       ro = new ResizeObserver(() => M.resize()); ro.observe(wrap); M.resize();
       M.marks = (opts.marks || []).map(p => ({ p }));
       if (st.a && st.b) run();
       else if (opts.focus) { M.sel = opts.focus; showPlaceSheet(opts.focus, M, st, { inA, inB, inV }, run); M.fit([opts.focus, ...(opts.marks || [])].slice(0, 1), 120); }
       else if (M.marks.length) M.fit(M.marks.map(m => m.p), 80);
       else M.fit([{ lon: 34.2, lat: 29.5 }, { lon: 36.6, lat: 33.4 }]);
-      cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(); const p = M.pick(e.clientX - r.left, e.clientY - r.top); if (!p) return; M.sel = p; M.request(); showPlaceSheet(p, M, st, { inA, inB, inV }, run); });
+      cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; const p = M.pick(x, y); if (!p) { pop.hidden = true; return; } M.sel = p; M.request(); mapPop(p, x, y); });
     },
-    onClose: () => { ro?.disconnect(); GEO.map = null; },
+    onClose: () => { ro?.disconnect(); GEO.map = null; acs.forEach(a => a.remove()); },
   });
 }
 function showPlaceSheet(p, M, st, ins, run) {
@@ -3786,8 +3858,8 @@ function showPlaceSheet(p, M, st, ins, run) {
       h('dl', { class: 'kv', style: 'margin:8px 0' }, h('dt', { text: 'Hoje' }), h('dd', { text: p.modPt || '—' }), h('dt', { text: 'Nome (OpenBible)' }), h('dd', { text: p.en }),
         h('dt', { text: 'Coordenadas' }), h('dd', { class: 'mono', text: p.lat.toFixed(3) + ', ' + p.lon.toFixed(3) }), e != null ? [h('dt', { text: 'Altitude aprox.' }), h('dd', { class: 'mono', text: fmtM(e) })] : null),
       h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px' },
-        h('button', { class: 'btn', text: 'Sair daqui', onclick: () => { st.a = p; inA.value = p.lab; if (st.b) run(); else toast('Agora escolha o destino.'); } }),
-        h('button', { class: 'btn', text: 'Ir até aqui', onclick: () => { st.b = p; inB.value = p.lab; if (st.a) run(); else toast('Agora escolha a origem.'); } }),
+        h('button', { class: 'btn', text: 'Usar como origem', onclick: () => { st.a = p; inA.value = p.lab; if (st.b) run(); else toast('Agora escolha o destino.'); } }),
+        h('button', { class: 'btn', text: 'Usar como destino', onclick: () => { st.b = p; inB.value = p.lab; if (st.a) run(); else toast('Agora escolha a origem.'); } }),
         st.a && st.b ? h('button', { class: 'btn', text: 'Passar por aqui', onclick: () => { st.via = [...st.via, p]; inV.value = st.via.map(x => x.lab).join(', '); run(); } }) : null,
         h('button', { class: 'btn primary', text: 'Gravar no cérebro', onclick: async ev => { const b = ev.currentTarget; b.disabled = true; if (await savePlace(p, st.ctxRef)) b.textContent = 'Gravado ✓'; else b.disabled = false; } }),
         h('a', { class: 'btn ghost', href: 'https://www.openbible.info/geo/ancient/' + p.oid, target: '_blank', rel: 'noopener', text: 'OpenBible ↗' })));
