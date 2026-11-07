@@ -304,6 +304,19 @@ details summary{cursor:pointer;color:var(--soft);font-size:13px}
 .fs-sheet-body{padding:6px 16px 20px;display:flex;flex-direction:column;gap:6px}
 .fs-sheet-x{position:sticky;top:8px;float:right;margin:8px 10px 0 0;z-index:2}
 .arc-fs,.hud-fs{position:absolute;inset:0;touch-action:none}
+/* aba Mapa e jornadas */
+.tab-s{display:none}
+@media (max-width:720px){.tab-l{display:none}.tab-s{display:inline}
+  /* 7 itens no menu de baixo: menos folga para caber até em telas de 360 px */
+  nav.tabs{gap:0;padding-left:max(4px,env(safe-area-inset-left,0px));padding-right:max(4px,env(safe-area-inset-right,0px))}
+  nav.tabs .tab{padding:5px 3px 4px;font-size:11px;letter-spacing:0;flex:0 1 auto;min-width:0}}
+.mapa-volta{margin-bottom:10px}
+.mapa-palco{position:relative;height:clamp(360px,calc(100vh - 320px),680px)}
+@media (max-width:720px){.mapa-palco{height:clamp(320px,56svh,560px)}}
+.mapa-card{position:relative;padding-top:12px}
+.mapa-x{position:absolute;top:8px;right:8px;z-index:2}
+.mapa-card-b{display:flex;flex-direction:column;gap:6px}
+.mapa-card-b>.eyebrow:first-child,.mapa-card-b>.p-ref{padding-right:40px}
 /* sugestões de lugares e balão do mapa */
 .ac-lugar{position:fixed;z-index:85;max-height:min(330px,46vh);overflow-y:auto;overscroll-behavior:contain;background:var(--raised);border:1px solid var(--line2);border-radius:12px;box-shadow:0 16px 44px #000b;padding:4px}
 .ac-it{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border-radius:8px;background:none;border:0;color:var(--text);cursor:pointer}
@@ -1029,6 +1042,7 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
     <button class="tab" role="tab" data-tab="inicio" aria-selected="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Início</button>
     <button class="tab" role="tab" data-tab="leitor" aria-selected="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6v14"/></svg>Leitor</button>
     <button class="tab" role="tab" data-tab="arcos" aria-selected="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 19c2-9 7-9 9 0M7 19c3-14 12-14 15 0M2 21h20"/></svg>Arcos</button>
+    <button class="tab" role="tab" data-tab="mapa" aria-selected="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span class="tab-l">Mapa e jornadas</span><span class="tab-s">Mapa</span></button>
     <button class="tab" role="tab" data-tab="cerebro" aria-selected="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="17" r="2.5"/><path d="M8 8l3 7M16 8l-3 7M8.5 7h7"/></svg>Cérebro</button>
     <button class="tab" role="tab" data-tab="descobertas" aria-selected="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6M10 7v6M7 10h6"/></svg>Descobertas</button>
     <button class="tab" role="tab" data-tab="mesa" aria-selected="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 7c0 3 2 4 5 4s5-1 5-4M4 7c0 6 3 8 8 8s8-2 8-8"/></svg>Mesa</button>
@@ -2138,6 +2152,7 @@ function setTab(tab, opts = {}) {
   if (window.ET?.visitante && !(tab === 'descobertas' && opts.estudo === ET.visitante.id)) { if (S.tab) ET.convite(); else setTab('descobertas', { estudo: ET.visitante.id }); return; }
   if (FS.isOpen) FS.close();
   if (ARC.full) { ARC.full.halt(); ARC.full = null; }
+  MAPA.limpa?.();
   if (LER.isOpen) LER.fechar(true);
   if (NEURO.docked) NEURO.undock(); else if (NEURO.isOpen) NEURO.close();
   if (matchMedia('(max-width:1080px)').matches && !$('#panel').hidden) closePanel();
@@ -2860,6 +2875,31 @@ VIEWS.arcos = async (root, opts = {}) => {
   cv.addEventListener('mouseleave', () => { tip.hidden = true; });
   if (opts.verse) { await selectArcVerse(opts.verse); const [b, c] = split(opts.verse); setTimeout(() => arcZoomTo(chapIndex(b, c)), 60); }
   else if (S.arcSel) renderArcInfo();
+};
+
+VIEWS.mapa = async (root, opts = {}) => {
+  const wrap = h('div', { class: 'wide' });
+  const NOMES = { inicio: 'Início', leitor: 'Leitor', arcos: 'Arcos', cerebro: 'Cérebro', descobertas: 'Descobertas', mesa: 'Mesa' };
+  if (opts.de && NOMES[opts.de]) wrap.append(h('button', { class: 'btn ghost sm mapa-volta', type: 'button', text: opts.deOpts?.estudo ? '‹ Voltar ao estudo' : '‹ Voltar para ' + NOMES[opts.de], onclick: () => setTab(opts.de, opts.deOpts || {}) }));
+  wrap.append(h('div', { class: 'eyebrow', text: 'Geografia bíblica' }), h('h1', { class: 'h1', text: 'Mapa e jornadas' }),
+    h('p', { class: 'lede', text: 'Relevo, lugares bíblicos e o cálculo de cada viagem: distância, dias e dificuldades. Digite a origem e o destino ou toque numa cidade do mapa.' }));
+  const barra = h('div', { class: 'fs-tools tw mapa-barra' });
+  const palco = h('div', { class: 'mapa-palco' });
+  const info = h('aside', { class: 'arc-info mapa-info', 'aria-live': 'polite' });
+  wrap.append(h('div', { class: 'arc-grade' }, h('div', { class: 'arc-caixa' }, barra, palco), info),
+    h('p', { class: 'muted', style: 'font-size:12.5px;margin-top:16px', text: 'Lugares e identificações modernas: OpenBible.info (CC BY). Relevo aproximado, usado para estimar subidas e dias de viagem.' }));
+  root.append(wrap);
+  const dica = () => info.append(h('div', { class: 'card arc-dica' }, h('div', { class: 'eyebrow', text: 'Como usar' }),
+    h('p', { class: 'soft', style: 'margin:6px 0 0;font-size:13.5px;line-height:1.55', text: 'Digite a origem e o destino (as sugestões aparecem enquanto você escreve) ou toque numa cidade do mapa e escolha Origem ou Destino. A jornada é calculada assim que os dois estiverem escolhidos.' })));
+  const painel = build => {
+    info.innerHTML = '';
+    if (!build) { dica(); return null; }
+    const body = h('div', { class: 'mapa-card-b' });
+    info.append(h('div', { class: 'card mapa-card' }, h('button', { class: 'iconbtn mapa-x', type: 'button', 'aria-label': 'Fechar detalhes', html: XSVG, onclick: () => painel(null) }), body));
+    build(body); return body;
+  };
+  dica();
+  await montaMapa(opts, { barra, palco, painel });
 };
 
 /* ================= BRAIN ================= */
@@ -3762,8 +3802,17 @@ function autoLugar(inp, aoEscolher, { varios = false } = {}) {
   addEventListener('resize', () => { if (!box.hidden) lugar(); });
   return { fecha, remove: () => box.remove() };
 }
-async function openMapFull(opts = {}) {
+// "Abrir no mapa" de qualquer lugar leva à aba Mapa e jornadas (lembrando de onde veio, para o Voltar)
+function openMapFull(opts = {}) {
+  const aqui = S.tab === 'mapa';
+  setTab('mapa', { ...opts, de: aqui ? opts.de : S.tab, deOpts: aqui ? opts.deOpts : (S.tab === 'descobertas' && S.estudo ? { estudo: S.estudo } : {}) });
+}
+// detalhes ao lado do mapa (lugar tocado ou jornada calculada) e a limpeza ao sair da aba
+const MAPA = { painel: null, limpa: null };
+async function montaMapa(opts, L) {
   let D; try { D = await GEO.ensure(); } catch { toast('Não consegui carregar o mapa.'); return; }
+  if (!L.palco.isConnected) return;
+  MAPA.painel = L.painel;
   const st = { a: opts.a || null, b: opts.b || null, via: opts.via || [], modo: opts.modo || store.get('modo', 'pe'), kmdia: null, ctxRef: opts.ctxRef || null };
   const inA = h('input', { class: 'fs-search', placeholder: 'Origem', value: st.a?.lab || '', 'aria-label': 'Origem' });
   const inV = h('input', { class: 'fs-search', placeholder: 'Passando por (opcional)', value: st.via.map(p => p.lab).join(', '), 'aria-label': 'Paradas no caminho, separadas por vírgula' });
@@ -3786,7 +3835,7 @@ async function openMapFull(opts = {}) {
     const stops = [st.a, ...st.via, st.b];
     let J = calcJourney(stops, st.modo, { kmdia: st.kmdia }); M.journey = J; M.sel = null;
     const mo = J.modo, lo = Math.max(2, Math.round(mo.kmdia * 0.3)), hi = Math.round(mo.kmdia * 2);
-    FS.sheet(body => {
+    L.painel(body => {
       const cardHost = h('div', {}, journeyCard(J, st.ctxRef));
       const rng = h('input', { type: 'range', id: 'ritmo', min: lo, max: hi, step: 1, value: J.kmdia, style: 'flex:1' });
       const out = h('output', { for: 'ritmo', class: 'mono', style: 'min-width:86px;text-align:right', text: J.kmdia + ' km/dia' });
@@ -3815,12 +3864,12 @@ async function openMapFull(opts = {}) {
   const acs = [autoLugar(inA, p => { if (!usar('a', p)) inA.value = ''; else if (!st.b) inB.focus(); }), autoLugar(inB, p => { if (!usar('b', p)) inB.value = ''; else if (!st.a) inA.focus(); }),
     autoLugar(inV, () => { if (st.a && st.b) run(false); }, { varios: true })];
   [inA, inV, inB].forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); run(); } }));
-  FS.open({
-    title: 'Mapa bíblico · jornadas', tools: [inA, swap, inB, inV, modo, go], wrap: true,
-    mount: stage => {
+  [inA, swap, inB, inV, modo, go].forEach(t => L.barra.append(t));
+  {
+    const stage = L.palco;
       const wrap = h('div', { class: 'arc-fs' }); const cv = h('canvas', { role: 'img', 'aria-label': 'Mapa com relevo, lugares bíblicos e a jornada calculada' });
       const pop = h('div', { class: 'map-pop', hidden: true, role: 'dialog' });
-      wrap.append(cv, pop, h('div', { class: 'fs-hint', style: 'bottom:34px', text: 'Pinça para ampliar · arraste · toque numa cidade para usá-la como origem ou destino' })); stage.append(wrap);
+      wrap.append(cv, pop, h('div', { class: 'fs-hint', style: 'bottom:34px', text: FINE ? 'Ctrl + roda para ampliar · arraste · clique numa cidade para usá-la como origem ou destino' : 'Pinça para ampliar · arraste · toque numa cidade para usá-la como origem ou destino' })); stage.append(wrap);
       // balão em cima da cidade tocada: um toque em Origem ou Destino já preenche (e calcula quando tiver os dois)
       mapPop = (p, x, y) => {
         pop.innerHTML = '';
@@ -3837,7 +3886,9 @@ async function openMapFull(opts = {}) {
         pop.style.top = (y - hh - 16 > 8 ? y - hh - 16 : Math.min(H - hh - 8, y + 16)) + 'px';
       };
       M = makeMap(cv); GEO.map = M;
-      if (window.d3) { M.zoom = d3.zoom().scaleExtent([0.15, 60]).on('zoom', e => { M.tf = { k: e.transform.k, x: e.transform.x, y: e.transform.y }; M.request(); if (e.sourceEvent) pop.hidden = true; }); d3.select(cv).call(M.zoom).on('dblclick.zoom', null); }
+      let dicaRoda = false;
+      cv.addEventListener('wheel', e => { if (!e.ctrlKey && !dicaRoda) { dicaRoda = true; toast('Para ampliar o mapa: Ctrl + roda do mouse, pinça no trackpad ou dois dedos no celular.'); } }, { passive: true });
+      if (window.d3) { M.zoom = d3.zoom().scaleExtent([0.15, 60]).filter(e => e.type === 'wheel' ? e.ctrlKey : (!e.ctrlKey || e.type === 'touchstart') && !e.button).on('zoom', e => { M.tf = { k: e.transform.k, x: e.transform.x, y: e.transform.y }; M.request(); if (e.sourceEvent) pop.hidden = true; }); d3.select(cv).call(M.zoom).on('dblclick.zoom', null); }
       ro = new ResizeObserver(() => M.resize()); ro.observe(wrap); M.resize();
       M.marks = (opts.marks || []).map(p => ({ p }));
       if (st.a && st.b) run();
@@ -3845,13 +3896,12 @@ async function openMapFull(opts = {}) {
       else if (M.marks.length) M.fit(M.marks.map(m => m.p), 80);
       else M.fit([{ lon: 34.2, lat: 29.5 }, { lon: 36.6, lat: 33.4 }]);
       cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; const p = M.pick(x, y); if (!p) { pop.hidden = true; return; } M.sel = p; M.request(); mapPop(p, x, y); });
-    },
-    onClose: () => { ro?.disconnect(); GEO.map = null; acs.forEach(a => a.remove()); },
-  });
+  }
+  MAPA.limpa = () => { ro?.disconnect(); GEO.map = null; acs.forEach(a => a.remove()); MAPA.painel = null; MAPA.limpa = null; };
 }
 function showPlaceSheet(p, M, st, ins, run) {
   const { inA, inB, inV } = ins;
-  FS.sheet(body => {
+  (MAPA.painel || (f => FS.sheet(f)))(body => {
     const e = onLand(p.lon, p.lat) ? elevAt(p.lon, p.lat) : null;
     body.append(h('div', { class: 'eyebrow', text: p.t }), h('div', { class: 'p-ref', text: p.lab }),
       h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin:6px 0' }, h('span', { class: 'chip ' + confCls(p.c), text: confLabel(p.c) }), h('span', { class: 'chip', text: fmt(p.nv) + ' versículos' })),
@@ -4471,7 +4521,7 @@ VIEWS.inicio = root => {
   const mods = [
     ['leitor', 'Leitor', 'Hebraico e grego palavra por palavra, com Strong, morfologia, gematria e primeira menção.', fmt(nVers) + ' versículos', '#62B2E6', () => setTab('leitor')],
     ['arcos', 'Arcos', 'As referências cruzadas da Bíblia inteira, com zoom e toque nos capítulos.', '344.799 ligações', '#3BE3F0', () => setTab('arcos')],
-    ['mapa', 'Mapa e jornadas', 'Relevo, lugares e o cálculo de cada viagem: distância, dias e dificuldades.', '1.335 lugares', '#FF9A3C', () => openMapFull({})],
+    ['mapa', 'Mapa e jornadas', 'Relevo, lugares e o cálculo de cada viagem: distância, dias e dificuldades.', '1.335 lugares', '#FF9A3C', () => setTab('mapa')],
     ['cerebro', 'Segundo Cérebro', 'Tudo o que você descobre, ligado aos versículos, com o Binah para conversar.', fmt(S.brain.size) + ' nós', '#B484F7', () => setTab('cerebro')],
     ['lupa', 'Descobertas', 'Pente fino numa passagem: geografia, contas, palavras, tradições e teses, gravado no cérebro.', [...S.brain.values()].filter(n => n.tipo === 'estudo').length + ' estudos', '#F2B648', () => setTab('descobertas')],
     ['mesa', 'Mesa rabínica', 'Calendário judaico, parashá e o debate dos sábios.', 'parashá ' + (par ? par.names.join('–') : ''), '#2FC79A', () => setTab('mesa')],
