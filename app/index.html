@@ -692,7 +692,7 @@ details summary{cursor:pointer;color:var(--soft);font-size:13px}
 .es-meta,.es-acts,.es-selos{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .selo{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--soft);border:1px solid var(--line2);border-radius:999px;padding:2px 9px;background:var(--panel)}
 .selo i{width:8px;height:8px;border-radius:50%}
-.selo-claude{border-style:dashed}
+.selo-binah{border-style:dashed}
 .es-nav{position:sticky;top:0;z-index:3;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 0;background:linear-gradient(var(--bg) 70%,transparent)}
 .es-nav::-webkit-scrollbar{display:none}
 .es-nav-a{white-space:nowrap;font-size:12.5px;font-weight:600;color:var(--soft);border:1px solid var(--line2);border-radius:999px;padding:5px 11px;text-decoration:none;background:var(--panel)}
@@ -1050,9 +1050,8 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
 <script>
 /* Escola da Torá — versão no ar (GitHub Pages + Supabase).
    Este bloco roda antes do app: faz o login, guarda o cérebro de cada pessoa no Supabase,
-   liga o Binah à IA pela função et-claude (a chave da Anthropic fica só no servidor)
-   e ativa o microfone de verdade. O app conversa com ele pelo mesmo window.claude.use()
-   que usava dentro do Claude. */
+   liga o Binah à IA pela função et-ia (a chave da IA fica só no servidor)
+   e ativa o microfone de verdade. O app conversa com ele por window.binah.use(). */
 (() => {
   const ET = window.ET = {
     url: 'https://kwadhzmdaakxkztggigm.supabase.co',
@@ -1450,7 +1449,7 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
   }).catch(() => gate.intro.fim(() => gate.show('entrar')));
   ET.sair = async () => { try { await sb.auth.signOut(); } catch {} location.replace(ET.app); };
 
-  /* ---------------- cérebro no Supabase (mesma interface do db do Claude) ---------------- */
+  /* ---------------- cérebro no Supabase ---------------- */
   const DB = (() => {
     let rows = new Map(); const L = { nos: [], privado: [] };
     const meu = r => r.user_id === ET.uid || (r.base && ET.admin);
@@ -1523,8 +1522,8 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
   })();
   ET.db = DB;
 
-  /* ---------------- Claude pela função et-claude ---------------- */
-  const FN = ET.url + '/functions/v1/et-claude';
+  /* ---------------- IA pela função et-ia ---------------- */
+  const FN = ET.url + '/functions/v1/et-ia';
   // A resposta chega aos poucos (linhas JSON) com sinal de vida: respostas longas não caem no celular.
   // Se a conexão cair mesmo assim (tela apagou, app em segundo plano, internet oscilou), tenta de novo sozinho.
   const REDE = () => ({ code: 'rede', et: true, message: 'A conexão com a IA caiu (a tela apagou, o app foi para segundo plano ou a internet oscilou). Tente de novo.' });
@@ -1643,7 +1642,7 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
   // no estudo compartilhado, tudo o que usa a IA vira o convite para criar a conta
   const semIA = async () => { ET.convite('conversar com o Binah e investigar passagens'); throw { code: 'cancelled' }; };
   semIA.json = semIA; semIA.limits = async () => ({ tools: false, images: false });
-  window.claude = { use: async n => { await ET.ready; return n === 'db' ? DB : n === 'user' ? USER : n === 'sample' ? (ET.visitante ? semIA : sample) : null; } };
+  window.binah = { use: async n => { await ET.ready; return n === 'db' ? DB : n === 'user' ? USER : n === 'sample' ? (ET.visitante ? semIA : sample) : null; } };
   ET.convite = motivo => gate.show('convite', motivo);
   // gera (ou reaproveita) o link público fixo de um estudo verificado
   ET.compartilhar = async id => {
@@ -2385,13 +2384,13 @@ function nodeCard(n) {
     n.texto ? h('span', { class: 'ss', text: n.texto }) : null);
 }
 
-/* ================= CHAVRUTA (ask Claude) ================= */
+/* ================= CHAVRUTA (pergunte ao Binah) ================= */
 let chavrutaAbort = null;
 const CHV_SUGS = ['O que o hebraico/grego revela aqui?', 'Como a tradição judaica lê este versículo?', 'Que ligações com o Novo Testamento existem?', 'Faça-me uma pergunta socrática sobre este texto.'];
 function renderChavruta(host, verseId) {
   host.innerHTML = ''; host.dataset.chv = verseId || '';
-  host.append(h('h3', { class: 'sec-title' }, 'Chavruta', h('span', { class: 'n', text: 'estude com o Claude' })));
-  if (!S.sample) { host.append(h('p', { class: 'muted', style: 'margin:0;font-size:13px', text: 'A Chavruta usa o Claude dentro desta página. Ela não está disponível nesta visualização.' })); return; }
+  host.append(h('h3', { class: 'sec-title' }, 'Chavruta', h('span', { class: 'n', text: 'estude com o Binah' })));
+  if (!S.sample) { host.append(h('p', { class: 'muted', style: 'margin:0;font-size:13px', text: 'A Chavruta não está disponível agora. Recarregue a página e tente de novo.' })); return; }
   const box = h('div', { class: 'chv' });
   const ta = h('textarea', { id: 'chvQ', placeholder: verseId ? 'Pergunte sobre ' + refLabel(verseId, true) + '…' : 'Pergunte qualquer coisa sobre o texto, uma palavra ou uma conexão…' });
   const out = h('div', { class: 'ans', 'aria-live': 'polite' });
@@ -2412,14 +2411,14 @@ function renderChavruta(host, verseId) {
       out.innerHTML = mdLite(text); last = { q, text }; save.hidden = false;
     } catch (e) {
       if (e?.code === 'cancelled') { if (e.text) out.innerHTML = mdLite(e.text); }
-      else if (e?.code === 'not_granted' || e?.code === 'sampling_disabled' || e?.code === 'not_declared') { out.innerHTML = '<p class="muted">O uso do Claude não foi permitido nesta página. Você pode liberar em Permissões do artefato.</p>'; }
+      else if (e?.code === 'not_granted' || e?.code === 'sampling_disabled' || e?.code === 'not_declared') { out.innerHTML = '<p class="muted">O Binah não está disponível agora. Recarregue a página e tente de novo.</p>'; }
       else if (e?.et && e?.message) { out.innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; }
       else if (e?.code === 'rate_limited') { out.innerHTML = '<p class="muted">Muitas perguntas seguidas. Espere um pouco e tente de novo.</p>'; }
       else { out.innerHTML = (e?.text ? mdLite(e.text) : '') + '<p class="muted">Não consegui concluir a resposta. Tente de novo.</p>'; }
     } finally { go.disabled = false; stop.hidden = true; }
   };
   stop.onclick = () => chavrutaAbort?.abort();
-  save.onclick = () => last && openEditor({ tipo: 'pergunta', status: 'rascunho', autor: 'ia', titulo: last.q, texto: last.text, refs: verseId ? [verseId] : [], fontes: [{ t: 'Chavruta (Claude) — resposta a revisar', u: '' }] });
+  save.onclick = () => last && openEditor({ tipo: 'pergunta', status: 'rascunho', autor: 'ia', titulo: last.q, texto: last.text, refs: verseId ? [verseId] : [], fontes: [{ t: 'Chavruta (Binah) — resposta a revisar', u: '' }] });
 }
 async function verseText(id) {
   const [b, c, v] = split(id); const p = await getJSON('data/pt/' + S.books[b].o + '.json');
@@ -2870,7 +2869,7 @@ function orbCount() {
 }
 setInterval(() => { if (S.orbDia && S.orbDia !== new Date().toDateString()) orbCount(); }, 60000);
 async function startDb() {
-  const [db, user] = await Promise.all([window.claude?.use?.('db') ?? null, window.claude?.use?.('user') ?? null]);
+  const [db, user] = await Promise.all([window.binah?.use?.('db') ?? null, window.binah?.use?.('user') ?? null]);
   S.db = db; S.user = user;
   if (user) { try { const w = await user.can?.('data.write'); if (w === false) S.canWrite = false; } catch {} }
   if (!db) { S.brainReady = false; if (S.tab === 'cerebro') setTab('cerebro'); return; }
@@ -2931,7 +2930,7 @@ function openNode(id, hostIn) {
   body.append(h('div', { style: 'display:flex;flex-direction:column;gap:10px' },
     h('div', { class: 'ncard', style: 'cursor:default' },
       h('span', { class: 'mm' }, h('span', { class: 'chip' }, h('span', { class: 'dot', style: 'background:' + t.c }), t.n), h('span', { class: 'chip st-' + n.status, text: n.status }),
-        h('span', { class: 'chip', text: n.autor === 'claude' ? 'pesquisado pelo Claude' : n.autor === 'ia' ? 'gerado por IA' : n._lib ? 'Diogo Soares' : 'você' })),
+        h('span', { class: 'chip', text: n.autor === 'binah' ? 'pesquisado pelo Binah' : n.autor === 'ia' ? 'gerado por IA' : n._lib ? 'Diogo Soares' : 'você' })),
       h('span', { class: 'tt', style: 'font-size:18px', text: n.titulo || '(sem título)' })),
     (n.refs || []).length ? h('div', { style: 'display:flex;flex-wrap:wrap;gap:10px' }, n.refs.map(r => h('button', { class: 'ref', 'data-goto': r, text: refLabel(r, true) }))) : null,
     h('div', { class: 'ans', html: mdLite(n.texto || '') }),
@@ -3018,7 +3017,7 @@ const LER = {
     const t = TIPOS[n.tipo] || TIPOS.nota, meu = S.canWrite && S.db && !n._lib;
     const refs = (n.refs || []).filter(r => S.books[split(r)[0]]);
     const lig = ligadasDe(n);
-    const autor = n.autor === 'claude' ? 'pesquisado pelo Claude' : n.autor === 'ia' ? 'gerado por IA' : n._lib ? 'Diogo Soares' : 'você';
+    const autor = n.autor === 'binah' ? 'pesquisado pelo Binah' : n.autor === 'ia' ? 'gerado por IA' : n._lib ? 'Diogo Soares' : 'você';
     this.btVolta.textContent = this.pilha.length ? '‹ Voltar' : this.origem?.binah ? '‹ Voltar ao Binah' : '‹ Voltar';
     this.el.setAttribute('aria-label', n.titulo || 'Leitura');
     this.chips.innerHTML = '';
@@ -3311,9 +3310,9 @@ const BRAIN = {
   },
   list(list) {
     const host = $('#brainBody'); if (!host) return; host.innerHTML = '';
-    if (!S.db) { host.append(h('div', { class: 'empty', text: 'O Segundo Cérebro guarda os dados fora da página e não está disponível nesta visualização. Abra o artefato no claude.ai com sua conta.' })); return; }
+    if (!S.db) { host.append(h('div', { class: 'empty', text: 'O Segundo Cérebro não está disponível agora. Entre na sua conta e recarregue a página.' })); return; }
     if (!S.brainReady) { host.append(h('p', { class: 'muted', text: 'Carregando o cérebro…' })); return; }
-    if (!S.brain.size) { host.append(h('div', { class: 'empty' }, h('strong', { text: 'Seu cérebro está vazio.' }), h('br'), 'Abra um versículo no Leitor e use “Anotar descoberta”, ou peça ao Claude no chat: “pesquise X e grave no cérebro”.')); return; }
+    if (!S.brain.size) { host.append(h('div', { class: 'empty' }, h('strong', { text: 'Seu cérebro está vazio.' }), h('br'), 'Abra um versículo no Leitor e use “Anotar descoberta”, ou peça ao Binah: “pesquise X e grave no cérebro”.')); return; }
     const sorted = list.sort((a, b) => String(b.atualizado || '').localeCompare(String(a.atualizado || '')) || String(a.id).localeCompare(String(b.id)));
     host.append(h('div', { class: 'ngrid' }, sorted.slice(0, this.listMax).map(nodeCard)));
     if (!sorted.length) host.append(h('div', { class: 'empty', text: 'Nenhum nó com esses filtros.' }));
@@ -4581,7 +4580,7 @@ function binahTools() {
   wrapped.push({ name: 'briefing_de_hoje', description: 'Resumo do dia para ' + ETN() + ': data hebraica, parashá da semana, próxima festa, rascunhos no cérebro e a conexão do dia.', inputSchema: { type: 'object', properties: {} },
     async execute() { binahLog('montando o briefing de hoje'); const B = await buildBriefing(); return briefingFala(B) + (B.con ? `\nTextos da conexão: "${B.con.fromText}" / "${B.con.toText}"` : ''); } });
   if (S.db && S.canWrite) wrapped.push({ name: 'gravar_no_cerebro', description: 'Grava uma anotação no Segundo Cérebro de ' + ETN() + ', como rascunho para ele conferir. Use só quando ele pedir para gravar, salvar ou anotar.', inputSchema: { type: 'object', properties: { titulo: { type: 'string' }, texto: { type: 'string' }, tipo: { type: 'string', enum: Object.keys(TIPOS) }, refs: { type: 'array', items: { type: 'string' }, description: 'Referências como "Gn 22:2"' } }, required: ['titulo', 'texto'] },
-    async execute(inp) { binahLog('gravando no cérebro: ' + String(inp.titulo).slice(0, 50)); const refs = (inp.refs || []).map(x => parseRef(String(x))).filter(r => r && r.v).map(r => vid(r.b, r.c, r.v)); const ok = await saveNode({ tipo: TIPOS[inp.tipo] ? inp.tipo : 'descoberta', status: 'rascunho', autor: 'claude', titulo: String(inp.titulo).slice(0, 160), texto: String(inp.texto), refs, fontes: [{ t: 'Binah (Claude) — revisar', u: '' }] }); return ok ? { gravado: true } : { gravado: false, motivo: 'não foi possível gravar' }; } });
+    async execute(inp) { binahLog('gravando no cérebro: ' + String(inp.titulo).slice(0, 50)); const refs = (inp.refs || []).map(x => parseRef(String(x))).filter(r => r && r.v).map(r => vid(r.b, r.c, r.v)); const ok = await saveNode({ tipo: TIPOS[inp.tipo] ? inp.tipo : 'descoberta', status: 'rascunho', autor: 'binah', titulo: String(inp.titulo).slice(0, 160), texto: String(inp.texto), refs, fontes: [{ t: 'Binah — revisar', u: '' }] }); return ok ? { gravado: true } : { gravado: false, motivo: 'não foi possível gravar' }; } });
   return wrapped;
 }
 function citedVids(text) { const tmp = document.createElement('div'); tmp.innerHTML = mdLite(text); return [...new Set($$('[data-goto]', tmp).map(b => +b.dataset.goto))]; }
@@ -4613,9 +4612,9 @@ async function askBinah(q, ui) {
     bub.actions(q, text, vids);
   } catch (e) {
     BINAH.hist.pop(); VOZ.stop(); HUDFX.setMode('idle');
-    const msg = e?.et && e?.message ? e.message : e?.code === 'no_sample' ? 'A conversa usa o Claude dentro desta página e não está disponível nesta visualização. Abra o app pelo claude.ai.'
+    const msg = e?.et && e?.message ? e.message : e?.code === 'no_sample' ? 'O Binah não está disponível agora. Recarregue a página e tente de novo.'
       : e?.code === 'cancelled' ? (e.text ? null : 'Parei.')
-      : (e?.code === 'not_granted' || e?.code === 'sampling_disabled' || e?.code === 'not_declared') ? 'O uso do Claude não foi liberado nesta página. Libere em Permissões do artefato e tente de novo.'
+      : (e?.code === 'not_granted' || e?.code === 'sampling_disabled' || e?.code === 'not_declared') ? 'O Binah não está disponível agora. Recarregue a página e tente de novo.'
       : e?.code === 'rate_limited' ? 'Muitas perguntas seguidas. Espere um pouco e tente de novo.' : 'Não consegui concluir a resposta. Tente de novo.';
     if (e?.code === 'cancelled' && e.text) bub.set(e.text, true); else bub.set('', true, msg);
     binahLog(e?.code === 'cancelled' ? 'interrompido' : 'falhou');
@@ -4653,7 +4652,7 @@ function openBinahFS() {
           actions(q, text, vids) {
             acts.append(...[
               VOZ.ok ? h('button', { class: 'btn', text: 'Ouvir', onclick: () => { VOZ.unlock(); VOZ.sayAll(text); } }) : null,
-              S.db ? h('button', { class: 'btn', text: 'Gravar no cérebro', onclick: async e => { const b = e.currentTarget; b.disabled = true; if (await saveNode({ tipo: 'pergunta', status: 'rascunho', autor: 'claude', titulo: q.slice(0, 140), texto: text, refs: vids, fontes: [{ t: 'Conversa com o Binah (Claude) — revisar', u: '' }] })) b.textContent = 'Gravado ✓'; else b.disabled = false; } }) : null,
+              S.db ? h('button', { class: 'btn', text: 'Gravar no cérebro', onclick: async e => { const b = e.currentTarget; b.disabled = true; if (await saveNode({ tipo: 'pergunta', status: 'rascunho', autor: 'binah', titulo: q.slice(0, 140), texto: text, refs: vids, fontes: [{ t: 'Conversa com o Binah — revisar', u: '' }] })) b.textContent = 'Gravado ✓'; else b.disabled = false; } }) : null,
               h('button', { class: 'btn', text: 'Copiar', onclick: () => copyText(text) })].filter(Boolean));
           },
         };
@@ -4665,7 +4664,7 @@ function openBinahFS() {
         const el = h('div', { class: 'bm a' }, h('div', { class: 'who', text: 'BINAH' }), h('div', { class: 'ans', html: mdLite(briefingFala(B)) }));
         if (VOZ.ok) el.append(h('div', { class: 'acts' }, h('button', { class: 'btn', text: 'Ouvir', onclick: () => { VOZ.unlock(); VOZ.sayAll(briefingFala(B)); } })));
         list.prepend(el);
-        if (!S.sample) list.append(h('div', { class: 'bm tip', text: 'A conversa usa o Claude dentro desta página e não está disponível nesta visualização. O briefing e a voz funcionam.' }));
+        if (!S.sample) list.append(h('div', { class: 'bm tip', text: 'O Binah não está disponível agora. Recarregue a página e tente de novo.' }));
       };
       const send = () => {
         if (BINAH.busy) { BINAH.abort?.abort(); return; }
@@ -4679,7 +4678,7 @@ function openBinahFS() {
       ta.addEventListener('blur', () => { if (!BINAH.busy && HUDFX.mode === 'listening') HUDFX.setMode('idle'); });
       mic.onclick = () => {
         ta.focus();
-        if (!BINAH.tipShown) { BINAH.tipShown = true; list.append(h('div', { class: 'bm tip', text: 'Para falar, toque no microfone do teclado do celular e dite a pergunta: eu vou ouvindo enquanto você fala. O microfone direto fica bloqueado dentro do app do Claude; na versão no escoladatora.com.br ele funciona sem o teclado.' })); scroll(); }
+        if (!BINAH.tipShown) { BINAH.tipShown = true; list.append(h('div', { class: 'bm tip', text: 'Para falar, toque no microfone do teclado do celular e dite a pergunta: eu vou ouvindo enquanto você fala.' })); scroll(); }
       };
       // histórico
       if (BINAH.hist.length) { sugs.hidden = true; BINAH.hist.forEach(m => { if (m.role === 'user') ui.addUser(m.content); else { const b = ui.addBot(''); b.set(m.content, true); } }); }
@@ -4883,7 +4882,7 @@ const NEURO = {
     close.onclick = () => this.close();
     if (vozBtn) vozBtn.onclick = () => { VOZ.on = !VOZ.on; store.set('voz', VOZ.on); vozBtn.setAttribute('aria-pressed', String(VOZ.on)); vozBtn.textContent = VOZ.on ? 'Voz ligada' : 'Voz desligada'; if (!VOZ.on) VOZ.stop(); else VOZ.unlock(); };
     histBtn.onclick = () => { hist.hidden = !hist.hidden; if (!hist.hidden) this.renderHist(); };
-    mic.onclick = () => { inp.focus(); if (!BINAH.tipShown) { BINAH.tipShown = true; this.say('Para falar, toque no microfone do teclado do celular e dite. O microfone direto fica bloqueado dentro do app do Claude.', true); } };
+    mic.onclick = () => { inp.focus(); if (!BINAH.tipShown) { BINAH.tipShown = true; this.say('Para falar, toque no microfone do teclado do celular e dite.', true); } };
     bar.onsubmit = e => { e.preventDefault(); if (BINAH.busy) { BINAH.abort?.abort(); return; } const q = inp.value.trim(); if (!q) { inp.focus(); return; } inp.value = ''; this.card.hidden = true; askBinah(q, this.ui()); };
     inp.addEventListener('input', () => { if (!BINAH.busy) { if (HUDFX.mode !== 'listening') HUDFX.setMode('listening'); HUDFX.bump(0.7 + Math.random() * 0.3); } });
     inp.addEventListener('focus', () => { if (!BINAH.busy && !VOZ.busy) HUDFX.setMode('listening'); });
@@ -4988,7 +4987,7 @@ const NEURO = {
           actions(q, text, vids) {
             const acts = h('div', { class: 'nr-acts' },
               VOZ.ok ? h('button', { class: 'btn', type: 'button', text: 'Ouvir', onclick: () => { VOZ.unlock(); VOZ.sayAll(text); } }) : null,
-              S.db ? h('button', { class: 'btn', type: 'button', text: 'Gravar no cérebro', onclick: async e => { const b = e.currentTarget; b.disabled = true; if (await saveNode({ tipo: 'pergunta', status: 'rascunho', autor: 'claude', titulo: q.slice(0, 140), texto: text, refs: vids, fontes: [{ t: 'Conversa com o Binah (Claude) — revisar', u: '' }] })) b.textContent = 'Gravado ✓'; else b.disabled = false; } }) : null,
+              S.db ? h('button', { class: 'btn', type: 'button', text: 'Gravar no cérebro', onclick: async e => { const b = e.currentTarget; b.disabled = true; if (await saveNode({ tipo: 'pergunta', status: 'rascunho', autor: 'binah', titulo: q.slice(0, 140), texto: text, refs: vids, fontes: [{ t: 'Conversa com o Binah — revisar', u: '' }] })) b.textContent = 'Gravado ✓'; else b.disabled = false; } }) : null,
               h('button', { class: 'btn', type: 'button', text: 'Conversa', onclick: () => { self.hist.hidden = false; self.renderHist(); } }));
             self.sub.append(acts);
           },
@@ -5471,7 +5470,7 @@ const SELOS = {
   app: { n: 'Calculado pelo app', c: '#2FC79A' },
   texto: { n: 'Do texto bíblico', c: '#62B2E6' },
   web: { n: 'Pesquisado com fontes', c: '#F2B648' },
-  claude: { n: 'Conhecimento do Claude · conferir', c: '#E9A43C' },
+  binah: { n: 'Pesquisa do Binah · conferir', c: '#E9A43C' },
 };
 const seloChip = k => { const s = SELOS[k]; return s ? h('span', { class: 'selo selo-' + k, title: s.n }, h('i', { style: 'background:' + s.c }), s.n) : null; };
 const SEC_ICON = { passagem: '📜', pessoas: '👤', geografia: '🗺', lugares: '📍', tempo: '⏳', contas: '🧮', palavras: 'א', conexoes: '⇄', judaica: '✡', crista: '✝', arqueologia: '⛏', teses: '⚖', sintese: '✦', perguntas: '?' };
@@ -5660,7 +5659,7 @@ function renderEstudo(root, id) {
     h('h1', { class: 'es-title', text: E.titulo || 'Estudo' }),
     E.subtitulo ? h('p', { class: 'es-sub', text: E.subtitulo }) : null,
     E.resumo ? h('p', { class: 'lede-big', text: E.resumo }) : null,
-    h('div', { class: 'es-meta' }, h('span', { class: 'chip st-' + E.status, text: E.status }), h('span', { class: 'chip', text: E.autor === 'claude' ? 'pesquisado pelo Claude' : E._lib ? 'Diogo Soares' : 'você' }), (E.tags || []).slice(0, 8).map(t => h('span', { class: 'chip', text: t }))),
+    h('div', { class: 'es-meta' }, h('span', { class: 'chip st-' + E.status, text: E.status }), h('span', { class: 'chip', text: E.autor === 'binah' ? 'pesquisado pelo Binah' : E._lib ? 'Diogo Soares' : 'você' }), (E.tags || []).slice(0, 8).map(t => h('span', { class: 'chip', text: t }))),
     h('div', { class: 'es-acts' }, p.de ? h('button', { class: 'btn primary', text: 'Ler a passagem', onclick: () => { if (VIS) { const d = $('.es-text'); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; } gotoVerse(p.de); } }) : null, ouvir,
       h('button', { class: 'btn glow', text: 'Perguntar ao Binah', onclick: e => { if (VIS) { ET.convite('perguntar ao Binah sobre este estudo'); return; } NEURO.open({ from: e.currentTarget, focus: true }); setTimeout(() => { const i = $('#nrQ'); if (i) i.value = 'Sobre o estudo “' + E.titulo + '”: '; }, 300); } }),
       h('button', { class: 'btn', text: 'Ver no cérebro', onclick: e => { NEURO.open({ from: e.currentTarget }); setTimeout(() => { const V = NEURO.V; const i = V?.g.idx.get(id); if (i != null) V.select(i); }, 700); } }),
@@ -5911,7 +5910,7 @@ async function emParalelo(jobs, n) {
   if (erro) throw erro;
 }
 async function investigar(q, ui) {
-  if (INV.busy) return; if (!S.sample) { toast('O investigador usa o Claude dentro desta página e não está disponível nesta visualização.'); return; }
+  if (INV.busy) return; if (!S.sample) { toast('O investigador não está disponível agora. Recarregue a página e tente de novo.'); return; }
   INV.busy = true; INV.abort = new AbortController(); ui.start();
   // se a última tentativa desta mesma busca caiu no meio, reaproveita as partes já prontas
   const SV = INV.salvo?.q === q ? INV.salvo : (INV.salvo = { q, partes: {} });
@@ -6013,18 +6012,18 @@ Conexões: ${curto(B.conexoes, 700)}`;
     const secoes = [
       { k: 'passagem', t: 'A passagem', selo: 'texto', md: String(A.passagem || '') },
       { k: 'pessoas', t: 'Pessoas: antes, durante e depois', selo: 'texto', md: String(Pp.cruzamentos || ''), pessoas },
-      { k: 'geografia', t: 'Geografia e jornadas', selo: jornadas.length ? 'app' : 'claude', md: String(A.geografia || ''), jornadas },
+      { k: 'geografia', t: 'Geografia e jornadas', selo: jornadas.length ? 'app' : 'binah', md: String(A.geografia || ''), jornadas },
       { k: 'lugares', t: 'Lugares no tempo e cidades por perto', selo: 'app', md: String(Lp.caminhos || ''), lugares },
       { k: 'contas', t: 'Pesos, medidas e quantidades', selo: 'app', md: String(Mp.contas || ''), medidas, calcs: (Mp.calcs || []).filter(okCalc).slice(0, 3) },
-      { k: 'tempo', t: 'Linha do tempo', selo: 'claude', md: String(Tp.datacao || ''), linha },
-      { k: 'palavras', t: 'Palavras no original', selo: 'claude', palavras: (B.palavras || []).slice(0, 8).map(w => ({ he: String(w.he || ''), tr: String(w.tr || ''), s: String(w.s || ''), ref: rr(w.ref), nota: String(w.nota || '') })) },
+      { k: 'tempo', t: 'Linha do tempo', selo: 'binah', md: String(Tp.datacao || ''), linha },
+      { k: 'palavras', t: 'Palavras no original', selo: 'binah', palavras: (B.palavras || []).slice(0, 8).map(w => ({ he: String(w.he || ''), tr: String(w.tr || ''), s: String(w.s || ''), ref: rr(w.ref), nota: String(w.nota || '') })) },
       { k: 'conexoes', t: 'Conexões', selo: 'texto', md: String(B.conexoes || ''), pares: (B.pares || []).map(pp => [rr(pp?.[0]), rr(pp?.[1])]).filter(pp => pp[0] && pp[1]).slice(0, 8) },
-      { k: 'judaica', t: 'Tradição judaica', selo: 'claude', md: String(B.judaica || '') },
-      { k: 'crista', t: 'Leitura cristã', selo: 'claude', md: String(B.crista || '') },
-      { k: 'arqueologia', t: 'Arqueologia e história', selo: 'claude', md: String(B.arqueologia || '') },
-      { k: 'teses', t: 'Teses e leituras', selo: 'claude', teses: (C.teses || []).slice(0, 5).map(t => ({ t: String(t.t || ''), a: String(t.a || ''), c: String(t.c || '') })) },
-      { k: 'sintese', t: 'Síntese', selo: 'claude', md: String(C.sintese || '') },
-      { k: 'perguntas', t: 'Para continuar', selo: 'claude', perguntas: (C.perguntas || []).slice(0, 6).map(String) },
+      { k: 'judaica', t: 'Tradição judaica', selo: 'binah', md: String(B.judaica || '') },
+      { k: 'crista', t: 'Leitura cristã', selo: 'binah', md: String(B.crista || '') },
+      { k: 'arqueologia', t: 'Arqueologia e história', selo: 'binah', md: String(B.arqueologia || '') },
+      { k: 'teses', t: 'Teses e leituras', selo: 'binah', teses: (C.teses || []).slice(0, 5).map(t => ({ t: String(t.t || ''), a: String(t.a || ''), c: String(t.c || '') })) },
+      { k: 'sintese', t: 'Síntese', selo: 'binah', md: String(C.sintese || '') },
+      { k: 'perguntas', t: 'Para continuar', selo: 'binah', perguntas: (C.perguntas || []).slice(0, 6).map(String) },
     ].filter(s => s.md || s.jornadas?.length || s.calcs?.length || s.palavras?.length || s.pares?.length || s.teses?.length || s.perguntas?.length || s.pessoas?.length || s.lugares?.length || s.medidas?.length || (s.linha && (s.linha.antes.length || s.linha.epoca.length || s.linha.depois.length)));
     const ferr = ['jornada', 'conversor', 'primeira_mencao']; if (b0 === 9 && c0 <= 6 && c1 >= 6) ferr.unshift('seis_passos');
     // nós do cérebro: as descobertas da IA, cada pessoa e cada lugar, ligados a todos os versículos conferidos
@@ -6034,19 +6033,19 @@ Conexões: ${curto(B.conexoes, 700)}`;
     for (const L of lugares.slice(0, 5)) { if (!L.papel && !L.antes.length && !L.depois.length) continue; nos.push({ tipo: 'geografia', titulo: (L.nome + ' ao longo da Bíblia').slice(0, 160), texto: [L.hojeTxt, L.papel].filter(Boolean).join('\n\n') + linhaMd('Antes', L.antes) + linhaMd('Depois', L.depois) + (L.perto.length ? '\n\n**Perto**: ' + L.perto.slice(0, 6).map(x => x.n + ' (' + String(x.km).replace('.', ',') + ' km)').join(', ') : ''), refs: [...L.aqui.slice(0, 3), ...L.antes.filter(m => m.ok).map(m => m.ref), ...L.depois.filter(m => m.ok).map(m => m.ref)].filter((x, i, a) => a.indexOf(x) === i).slice(0, 16) }); }
     const kids = nos.map((n, k) => ({ id: id + '-n' + (k + 1), ...n }));
     const now = new Date().toISOString();
-    const hubDoc = { tipo: 'estudo', status: 'rascunho', autor: 'claude', titulo: String(A.titulo || rot), subtitulo: String(A.subtitulo || ''), resumo: String(A.resumo || ''), tags: (A.tags || []).slice(0, 8).map(String),
+    const hubDoc = { tipo: 'estudo', status: 'rascunho', autor: 'binah', titulo: String(A.titulo || rot), subtitulo: String(A.subtitulo || ''), resumo: String(A.resumo || ''), tags: (A.tags || []).slice(0, 8).map(String),
       passagem: { de, ate, rotulo: rot }, secoes, ferramentas: ferr, filhos: kids.map(k => k.id), refs: [de, ate, ...kids.flatMap(k => k.refs)].filter((x, i, a) => x && a.indexOf(x) === i).slice(0, 24),
       texto: (String(A.resumo || '') + '\n\n' + String(C.sintese || '')).replace(/\*\*?([^*]+)\*\*?/g, '$1'), fontes: (B.fontes || []).filter(f => f && f.t).slice(0, 10).map(f => ({ t: String(f.t), u: /^https:\/\//.test(f.u || '') ? f.u : '' })), criado: now, atualizado: now };
     // 4. gravar
     ui.step('Gravando no cérebro (rascunho)');
     if (!S.db) throw { code: 'sem_db' };
     await S.db.collection('privado').doc(id).set(hubDoc);
-    for (const k of kids) { const { id: kid, ...d } = k; await S.db.collection('privado').doc(kid).set({ ...d, status: 'rascunho', autor: 'claude', estudo: id, fontes: [{ t: d.tipo === 'pessoa' || d.tipo === 'geografia' ? 'Versículos do texto original (STEPBible) e mapa (OpenBible.info); texto do Binah (Claude) — conferir' : 'Investigação do Binah (Claude) — conferir', u: '' }], selo: 'claude', criado: now, atualizado: now }); HUDFX.emit({ type: 'birth', id: kid }); }
+    for (const k of kids) { const { id: kid, ...d } = k; await S.db.collection('privado').doc(kid).set({ ...d, status: 'rascunho', autor: 'binah', estudo: id, fontes: [{ t: d.tipo === 'pessoa' || d.tipo === 'geografia' ? 'Versículos do texto original (STEPBible) e mapa (OpenBible.info); texto do Binah — conferir' : 'Investigação do Binah — conferir', u: '' }], selo: 'binah', criado: now, atualizado: now }); HUDFX.emit({ type: 'birth', id: kid }); }
     INV.salvo = null;
     ui.done(id);
   } catch (e) {
     HUDFX.setMode('idle');
-    const msg = e?.et && e?.message ? e.message : e?.code === 'cancelled' ? 'Investigação interrompida.' : e?.code === 'sem_passagem' ? 'Não achei a passagem. Tente com a referência, por exemplo "2 Rs 4:8-37".' : e?.code === 'sem_db' ? 'O cérebro não está disponível nesta visualização; o estudo não foi gravado.' : e?.code === 'invalid_json' ? 'Uma parte da resposta veio incompleta. Tente de novo ou peça um trecho menor.' : (e?.code === 'not_granted' || e?.code === 'sampling_disabled') ? 'O uso do Claude não foi liberado nesta página (Permissões do artefato).' : e?.et && e.message ? e.message : e?.code === 'rate_limited' ? 'Muitas chamadas seguidas. Espere um pouco.' : 'Não consegui concluir a investigação. Tente de novo.';
+    const msg = e?.et && e?.message ? e.message : e?.code === 'cancelled' ? 'Investigação interrompida.' : e?.code === 'sem_passagem' ? 'Não achei a passagem. Tente com a referência, por exemplo "2 Rs 4:8-37".' : e?.code === 'sem_db' ? 'O cérebro não está disponível nesta visualização; o estudo não foi gravado.' : e?.code === 'invalid_json' ? 'Uma parte da resposta veio incompleta. Tente de novo ou peça um trecho menor.' : (e?.code === 'not_granted' || e?.code === 'sampling_disabled') ? 'O Binah não está disponível agora. Recarregue a página e tente de novo.' : e?.et && e.message ? e.message : e?.code === 'rate_limited' ? 'Muitas chamadas seguidas. Espere um pouco.' : 'Não consegui concluir a investigação. Tente de novo.';
     const feitas = Object.keys(INV.salvo?.partes || {}).length;
     ui.fail(msg + (feitas && e?.code !== 'cancelled' && e?.code !== 'sem_db' ? ' O que já estava pronto ficou guardado: em “Tentar de novo” eu continuo de onde parei.' : '')); console.warn(e);
   } finally { INV.busy = false; }
@@ -6102,7 +6101,7 @@ VIEWS.descobertas = (root, opts = {}) => {
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go.click(); } });
     wrap.append(h('section', { class: 'inv' }, h('div', { class: 'inv-row' }, inp, go),
       h('div', { class: 'sugs', style: 'margin-top:10px' }, ['2 Rs 4:8-37', 'Jonas em Nínive', 'Elias no Carmelo', 'Rute e Boaz em Belém', 'A travessia do Mar Vermelho', 'Paulo em Malta'].map(t => h('button', { class: 'sug', text: t, onclick: () => { inp.value = t; go.click(); } }))),
-      h('p', { class: 'muted', style: 'font-size:12.5px;margin:10px 0 0', text: 'O investigador usa o conhecimento do Claude e não navega na internet: o que vier dele aparece com o selo "a conferir". Cada investigação usa vários pedidos de IA do seu dia.' }), window.ET ? ET.medidor() : null, prog));
+      h('p', { class: 'muted', style: 'font-size:12.5px;margin:10px 0 0', text: 'O investigador usa o conhecimento do Binah (uma IA) e não navega na internet: o que vier dele aparece com o selo "a conferir". Cada investigação usa vários pedidos de IA do seu dia.' }), window.ET ? ET.medidor() : null, prog));
   }
   // biblioteca
   const lib = h('section', { style: 'margin-top:26px' }, h('div', { class: 'sec-head', style: 'margin-bottom:12px' }, h('h2', { text: 'Estudos' }), h('span', { id: 'libN', text: '' })), h('div', { id: 'libHost', class: 'es-lib' }));
@@ -6157,7 +6156,7 @@ async function boot() {
   if (/^e-[\w.~-]+$/.test(hash)) setTab('descobertas', { estudo: hash.slice(2) }); else setTab(VIEWS[hash] ? hash : 'inicio');
   { let mq = 0; new MutationObserver(() => { if (!mq) mq = requestAnimationFrame(() => { mq = 0; enhance($('#view')); }); }).observe($('#view'), { childList: true, subtree: true }); }
   startDb();
-  window.claude?.use?.('sample').then(async s => {
+  window.binah?.use?.('sample').then(async s => {
     S.sample = s;
     if (s) { try { const lim = await s.limits?.(); S.sampleTools = !!lim?.tools; } catch { S.sampleTools = false; } }
     $$('[data-chv]').forEach(el => renderChavruta(el, el.dataset.chv ? +el.dataset.chv : null));
