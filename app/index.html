@@ -268,6 +268,40 @@ details summary{cursor:pointer;color:var(--soft);font-size:13px}
 .modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#0009;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .modal .box{width:min(560px,100%);max-height:88vh;overflow:auto;background:var(--bg2);border:1px solid var(--line2);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* enviar estudos prontos (Word, PDF, texto) */
+.modal .box.imp{width:min(760px,100%)}
+.imp-sub{margin:-4px 0 0;font-size:13.5px;color:var(--soft);line-height:1.5}
+.imp-pick{position:relative;overflow:hidden;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.imp-pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.imp-pick:focus-within{outline:2px solid var(--sky);outline-offset:2px}
+.imp-lista{display:flex;flex-direction:column;gap:10px}
+.imp-it{border:1px solid var(--line2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg);min-width:0}
+.imp-it.erro{border-color:color-mix(in srgb,var(--red) 50%,var(--line2))}
+.imp-top{display:flex;align-items:center;gap:8px;min-width:0}
+.imp-arq{flex:1;min-width:0;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-st{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--line);color:var(--soft);white-space:nowrap}
+.imp-st.ok{color:#2FC79A;background:color-mix(in srgb,#2FC79A 14%,transparent)}
+.imp-st.err{color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent)}
+.imp-corpo{display:flex;flex-direction:column;gap:10px;min-width:0}
+.imp-g{display:grid;grid-template-columns:170px minmax(0,1fr);gap:10px}
+.imp-info{margin:0;font-size:12.5px;color:var(--soft);line-height:1.5}
+.imp-aviso{color:var(--gold)}
+.imp-erro{margin:0;font-size:13px;color:var(--red);line-height:1.5}
+.imp-det summary{cursor:pointer;font-size:13px;color:var(--sky)}
+.imp-prev{max-height:240px;overflow:auto;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;line-height:1.6}
+.imp-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.imp-bin{border:1px solid color-mix(in srgb,#3BE3F0 35%,var(--line2));background:color-mix(in srgb,#3BE3F0 5%,var(--bg));border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px;line-height:1.55}
+.imp-bin p{margin:0}
+.imp-bin-h{font-weight:700;color:#3BE3F0;font-size:13px}
+.imp-bin-l{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.imp-bin ul{margin:0;padding-left:18px}
+.imp-pe{position:sticky;bottom:-18px;margin:0 -18px -18px;padding:12px 18px 16px;background:var(--bg2);border-top:1px solid var(--line);display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.imp-pe .field{min-width:130px}
+.imp-pe .imp-info{flex:1 1 180px}
+.pal-pop .big{font-size:34px;line-height:1.3;color:var(--gold);font-family:var(--f-heb)}
+.pal-pop .big.gr{font-size:28px;font-family:var(--f-text)}
+.pal-pop p{margin:4px 0}
+@media (max-width:620px){.imp-g{grid-template-columns:minmax(0,1fr)}}
 
 /* ---------- brain orb (HUD) ---------- */
 .orb{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px) + var(--navh));z-index:40;width:64px;height:64px;border:0;background:none;padding:0;filter:drop-shadow(0 0 10px #22d3ee70)}
@@ -2030,8 +2064,14 @@ function buildAlias() {
     ALIAS.set(norm(bk.o), i);
   });
   for (const [k, v] of Object.entries(extra)) if (v != null) ALIAS.set(k.trim(), v);
+  // com acento o nome é exato: "Jó" é Jó e "Jo" é João (sem acento os dois viram "jo")
+  ALIAS_ACENTO = new Map();
+  S.books.forEach((bk, i) => { for (const x of [bk.n, bk.a]) { const k = String(x || '').toLowerCase().replace(/[\s.]+/g, ''); if (k && k !== norm(k)) ALIAS_ACENTO.set(k, i); } });
 }
+let ALIAS_ACENTO = new Map();
 function bookFrom(token) {
+  const exato = String(token || '').toLowerCase().replace(/[\s.]+/g, '');
+  if (ALIAS_ACENTO.has(exato)) return ALIAS_ACENTO.get(exato);
   const t = norm(token).replace(/[\s.]+/g, '');
   if (ALIAS.has(t)) return ALIAS.get(t);
   let best = null;
@@ -2148,7 +2188,11 @@ function mdLite(t) {
     if (line.trim()) out += '<p>' + line + '</p>';
   }
   if (inList) out += '</ul>';
-  return linkRefs(out);
+  return linkStrong(linkRefs(out));
+}
+// números Strong no texto (H0157, G26) viram botão que abre a palavra
+function linkStrong(htmlStr) {
+  return htmlStr.replace(/(^|[\s(>;,“"·])([HG])0*(\d{1,4})(?![\w\d])/g, (all, pre, l, n) => +n ? `${pre}<button class="ref" type="button" data-strong="${l}${n.padStart(4, '0')}">${all.slice(pre.length)}</button>` : all);
 }
 
 /* ================= rodapé ================= */
@@ -2975,17 +3019,20 @@ function markBrainDots() {
     if (has && !dot) side.append(h('span', { class: 'bd', title: has + ' no cérebro' })); else if (!has && dot) dot.remove();
   });
 }
-async function saveNode(data, id) {
+// devolve o id do nó novo (ou true numa edição); { quieto } não mostra o aviso (gravação em lote)
+async function saveNode(data, id, { quieto = false } = {}) {
   if (!S.db) { toast('O cérebro não está disponível nesta visualização.'); return false; }
   const now = new Date().toISOString();
   try {
     const colOf = st => st === 'rascunho' ? 'privado' : 'nos';
+    let novo = null;
     if (id) {
       const cur = S.brain.get(id) || {}; const from = cur._col || 'nos', to = colOf(data.status ?? cur.status);
       if (from === to) await S.db.doc(from + '/' + id).update({ ...data, atualizado: now });
       else { const { id: _i, _col, ...rest } = cur; await S.db.collection(to).doc(id).set({ ...rest, ...data, atualizado: now }); await S.db.doc(from + '/' + id).delete(); }
-    } else await S.db.collection(colOf(data.status || 'rascunho')).add({ autor: 'diogo', ...data, criado: now, atualizado: now });
-    toast(id ? 'Nó atualizado' : 'Salvo no cérebro'); return true;
+    } else novo = (await S.db.collection(colOf(data.status || 'rascunho')).add({ autor: 'diogo', ...data, criado: now, atualizado: now }))?.id || null;
+    if (!quieto) toast(id ? 'Nó atualizado' : 'Salvo no cérebro');
+    return novo || true;
   } catch (e) {
     if (e?.code === 'quota_exceeded') toast('O cérebro está cheio. Exclua nós antigos para criar novos.');
     else if (e?.code === 'invalid_argument') { S.canWrite = false; toast('Você só pode ler este cérebro.'); }
@@ -3040,7 +3087,10 @@ const LER = {
         h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Fechar a leitura', title: 'Fechar', html: XSVG, onclick: () => this.fechar() })),
       this.scroller);
     // versículos dentro da leitura abrem numa janelinha, sem sair daqui
-    this.el.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); e.stopPropagation(); versoPopup(+g.dataset.goto); } });
+    this.el.addEventListener('click', e => {
+      const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); e.stopPropagation(); versoPopup(+g.dataset.goto); return; }
+      const s = e.target.closest('[data-strong]'); if (s) { e.preventDefault(); e.stopPropagation(); palavraPopup(s.dataset.strong); }
+    });
     // botão "voltar" do celular volta um passo da leitura
     addEventListener('popstate', () => { if (this.isOpen) this.voltar(true); });
     document.body.append(this.el);
@@ -3132,8 +3182,10 @@ function openEditor(init = {}, id = null) {
   const err = h('p', { class: 'muted', style: 'margin:0;color:var(--red)', hidden: true });
   const save = h('button', { class: 'btn primary', text: id ? 'Salvar alterações' : 'Salvar no cérebro' });
   const del = id ? h('button', { class: 'btn ghost', style: 'color:var(--red)', text: 'Excluir' }) : null;
+  // estudo pronto em arquivo: troca este formulário pela lista de envio
+  const arq = id ? null : h('div', { class: 'imp-acts' }, botaoArquivo('📄 Enviar Word ou PDF', fs => { close(); abrirImport(fs); }), h('span', { class: 'imp-info', text: 'Já tem o estudo pronto? O texto e os versículos entram sozinhos.' }));
   const box = h('form', { class: 'box', onsubmit: e => e.preventDefault() },
-    h('h2', { style: 'margin:0;font-size:18px', text: id ? 'Editar nó' : 'Nova descoberta' }),
+    h('h2', { style: 'margin:0;font-size:18px', text: id ? 'Editar nó' : 'Nova descoberta' }), arq,
     h('div', { class: 'field' }, h('label', { for: 'ed-titulo', text: 'Título' }), titulo),
     h('div', { class: 'row2' }, h('div', { class: 'field' }, h('label', { for: 'ed-tipo', text: 'Tipo' }), tipo), h('div', { class: 'field' }, h('label', { for: 'ed-status', text: 'Status' }), status)),
     h('div', { class: 'field' }, h('label', { for: 'ed-refs', text: 'Versículos ligados (separe com ;)' }), refs),
@@ -3162,6 +3214,396 @@ function openEditor(init = {}, id = null) {
       try { await S.db.doc((S.brain.get(id)?._col || 'nos') + '/' + id).delete(); toast('Nó excluído'); close(); closePanel(); } catch { toast('Não consegui excluir.'); }
     };
   }
+}
+
+/* ---------- enviar estudos prontos (Word, PDF ou texto) para o cérebro ---------- */
+// O texto é lido aqui no aparelho: o arquivo não sobe para lugar nenhum. Os versículos citados viram as ligações do nó.
+const IMP = {
+  MAXV: 40, MAXC: 150000, MAXB: 25 * 1024 * 1024,
+  accept: '.docx,.pdf,.txt,.md,.doc,.odt,.rtf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain',
+  lib: {
+    mammoth: ['https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js', () => window.mammoth],
+    pdf: ['https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', () => window.pdfjsLib],
+  },
+  pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+  carregando: {},
+};
+// os leitores de Word e PDF só baixam quando alguém envia um arquivo
+function usaLib(k) {
+  const [url, get] = IMP.lib[k];
+  if (get()) return Promise.resolve(get());
+  return IMP.carregando[k] || (IMP.carregando[k] = new Promise((ok, bad) => {
+    const s = document.createElement('script'); s.src = url; s.async = true;
+    s.onload = () => { const L = get(); if (L) ok(L); else { IMP.carregando[k] = null; bad({ code: 'lib' }); } };
+    s.onerror = () => { IMP.carregando[k] = null; s.remove(); bad({ code: 'lib' }); };
+    document.head.append(s);
+  }));
+}
+// botão que abre a escolha de arquivos (o campo fica por cima do botão: funciona no iPhone sem truques)
+function botaoArquivo(txt, aoEscolher, cls = '') {
+  const inp = h('input', { type: 'file', multiple: true, accept: IMP.accept, 'aria-label': txt.replace(/^\W+/, '') });
+  inp.onchange = () => { const fs = [...inp.files]; inp.value = ''; if (fs.length) aoEscolher(fs); };
+  return h('label', { class: ('btn imp-pick ' + cls).trim() }, txt, inp);
+}
+const tituloDoArquivo = nome => String(nome || '').replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Estudo';
+// junta os blocos em texto do cérebro (o mdLite entende **negrito**, *itálico*, "- " para listas e "## " para títulos)
+function blocosParaTexto(blocos) {
+  let out = '', ant = null;
+  for (const b of blocos) { if (!b.t) continue; out += (ant ? (ant.li && b.li ? '\n' : '\n\n') : '') + b.t; ant = b; }
+  return out;
+}
+// título: o primeiro título do arquivo, ou a primeira linha curta; sai do texto para não ficar repetido
+function tiraTitulo(blocos, reserva) {
+  const i = blocos.findIndex(b => b.t);
+  const b = blocos[i]; if (!b) return reserva;
+  const limpo = b.t.replace(/^##\s+/, '').replace(/\*+/g, '').trim();
+  if ((b.h || (limpo.length <= 90 && !/[.;,:]$/.test(limpo))) && limpo.length >= 3) { blocos.splice(i, 1); return limpo; }
+  return reserva;
+}
+function htmlParaBlocos(html) {
+  const doc = new DOMParser().parseFromString('<div>' + html + '</div>', 'text/html');
+  const inl = n => [...n.childNodes].map(c => {
+    if (c.nodeType === 3) return c.textContent;
+    if (c.nodeType !== 1) return '';
+    const t = c.tagName, s = inl(c);
+    if (t === 'BR') return '\n';
+    if (t === 'IMG' || t === 'UL' || t === 'OL') return '';
+    const marca = t === 'STRONG' || t === 'B' ? '**' : t === 'EM' || t === 'I' ? '*' : '';
+    if (marca && s.trim()) return (/^\s/.test(s) ? ' ' : '') + marca + s.trim() + marca + (/\s$/.test(s) ? ' ' : '');
+    return s;
+  }).join('');
+  const limpa = s => s.replace(/[ \t ]+/g, ' ').replace(/ *\n */g, '\n').trim();
+  const out = [];
+  const anda = n => {
+    for (const c of n.children) {
+      const t = c.tagName;
+      if (/^H[1-6]$/.test(t)) { const s = limpa(c.textContent); if (s) out.push({ t: '## ' + s, h: true }); }
+      else if (t === 'P') { const s = limpa(inl(c)); if (s) out.push({ t: s }); }
+      else if (t === 'UL' || t === 'OL') [...c.children].forEach((li, i) => {
+        const s = limpa(inl(li)); if (s) out.push({ t: (t === 'OL' ? (i + 1) + '. ' : '- ') + s, li: t === 'UL' });
+        li.querySelectorAll(':scope > ul, :scope > ol').forEach(sub => anda({ children: [sub] }));
+      });
+      else if (t === 'TABLE') c.querySelectorAll('tr').forEach(tr => { const s = [...tr.children].map(td => limpa(td.textContent)).filter(Boolean).join(' | '); if (s) out.push({ t: s }); });
+      else anda(c);
+    }
+  };
+  anda(doc.body.firstChild);
+  return out;
+}
+async function textoDocx(buf) {
+  const M = await usaLib('mammoth');
+  const r = await M.convertToHtml({ arrayBuffer: buf }, { convertImage: M.images.imgElement(() => Promise.resolve({ src: '' })) });
+  return { blocos: htmlParaBlocos(r.value || '') };
+}
+async function textoPdf(buf) {
+  const lib = await usaLib('pdf');
+  lib.GlobalWorkerOptions.workerSrc = IMP.pdfWorker;
+  let doc;
+  try { doc = await lib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise; }
+  catch (e) { throw e?.name === 'PasswordException' ? { code: 'senha' } : e; }
+  let meta = ''; try { meta = String((await doc.getMetadata())?.info?.Title || ''); } catch {}
+  const pags = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const pg = await doc.getPage(p); const tc = await pg.getTextContent();
+    const L = []; let cur = null, fimX = 0;
+    for (const it of tc.items) {
+      if (typeof it.str !== 'string') continue;
+      const x = it.transform[4], y = it.transform[5], alt = Math.abs(it.transform[3]) || it.height || 10;
+      if (it.str.trim() && (!cur || Math.abs(y - cur.y) > alt * 0.6)) { if (cur && cur.t.trim()) L.push(cur); cur = { y, h: alt, t: '' }; fimX = x; }
+      if (!cur) { if (it.hasEOL) continue; cur = { y, h: alt, t: '' }; fimX = x; }
+      if (cur.t && !/\s$/.test(cur.t) && !/^\s/.test(it.str) && x - fimX > alt * 0.12) cur.t += ' ';
+      cur.t += it.str; if (it.str.trim()) { fimX = x + (it.width || 0); cur.h = Math.max(cur.h, alt); }
+      if (it.hasEOL) { if (cur.t.trim()) L.push(cur); cur = null; }
+    }
+    if (cur && cur.t.trim()) L.push(cur);
+    pags.push(L.map(l => ({ y: l.y, h: l.h, t: l.t.replace(/\s+/g, ' ').trim() })).filter(l => l.t));
+    pg.cleanup?.();
+  }
+  const total = pags.reduce((s, L) => s + L.reduce((a, l) => a + l.t.length, 0), 0);
+  if (total < Math.max(60, doc.numPages * 25)) throw { code: 'escaneado' };
+  // cabeçalho, rodapé e número de página que se repetem em todas as páginas saem
+  // (a mesma linha em todas as páginas, ou ela com o número da página na ponta; "Dia 1", "Dia 2"… ficam)
+  const chave = t => t.toLowerCase().replace(/\s+/g, ' ').trim();
+  const semNum = k => k.replace(/^[\d\s|·•—–\-\/.]+/, '').replace(/[\s|·•—–\-\/.]*(p[áa]g(ina)?\.?\s*)?\d+(\s*(de|\/)\s*\d+)?[\s|·•—–\-\/.]*$/, '').trim();
+  const chaves = l => { const k = chave(l.t), s = semNum(k); return s.length >= 8 && s !== k ? [k, 'n:' + s] : [k]; };
+  const freq = new Map();
+  pags.forEach(L => new Set([...L.slice(0, 2), ...L.slice(-2)].flatMap(chaves)).forEach(k => freq.set(k, (freq.get(k) || 0) + 1)));
+  const rep = k => { const n = freq.get(k) || 0; return (pags.length >= 3 && n >= Math.max(3, pags.length * 0.5)) || (pags.length === 2 && n === 2); };
+  const lixo = l => /^(p[áa]g(ina)?\.?\s*)?\d+(\s*(de|\/)\s*\d+)?$/.test(chave(l.t)) || chaves(l).some(rep);
+  const alts = pags.flat().map(l => l.h).sort((a, b) => a - b); const altM = alts[Math.floor(alts.length / 2)] || 10;
+  const blocos = []; let par = null;
+  const fecha = () => { if (par && par.t) blocos.push(par); par = null; };
+  const junta = (a, b) => /[A-Za-zÀ-ú]-$/.test(a) && /^[a-zà-ú]/.test(b) ? a.slice(0, -1) + b : a + ' ' + b;
+  pags.forEach((L0, pi) => {
+    const L = L0.filter((l, i) => !((i < 2 || i >= L0.length - 2) && lixo(l)));
+    const gaps = []; for (let i = 1; i < L.length; i++) { const g = L[i - 1].y - L[i].y; if (g > 0) gaps.push(g); }
+    gaps.sort((a, b) => a - b); const gm = gaps[Math.floor(gaps.length / 2)] || altM * 1.3;
+    const cheia = Math.max(1, ...L.map(l => l.t.length));
+    L.forEach((l, i) => {
+      const tit = l.h > altM * 1.22 && l.t.length <= 100;
+      const item = /^[•▪●◦·\-–]\s*/.test(l.t);
+      if (i === 0) {
+        // parágrafo que continua de uma página para a outra
+        const segue = par && !par.h && !tit && !item && !/[.!?:;”"»)]$/.test(par.t) && /^[a-zà-ú(“"]/.test(l.t);
+        if (segue) { par.t = junta(par.t, l.t); return; }
+        fecha();
+      } else {
+        const ant = L[i - 1], g = ant.y - l.y;
+        const quebra = tit || item || (par && par.h) || g > gm * 1.45 || g < -2 || (/[.!?:”"»]$/.test(ant.t) && ant.t.length < cheia * 0.72);
+        if (!quebra && par) { par.t = junta(par.t, l.t); return; }
+        fecha();
+      }
+      if (tit) par = { t: '## ' + l.t, h: true };
+      else if (item) par = { t: '- ' + l.t.replace(/^[•▪●◦·\-–]\s*/, ''), li: true };
+      else par = { t: l.t };
+    });
+  });
+  fecha();
+  // título das propriedades do PDF, se for um título de verdade (não o nome do arquivo que o Word põe sozinho)
+  meta = meta.trim();
+  const metaBom = meta.length >= 3 && meta.length <= 120 && !/^Microsoft (Word|PowerPoint)/i.test(meta) && !/\.(docx?|pdf|odt|pages|rtf|txt)$/i.test(meta) && !/^(untitled|sem t[ií]tulo|documento?\s*\d*|presentation\s*\d*)$/i.test(meta);
+  return { blocos, titulo: metaBom ? meta : '', paginas: doc.numPages };
+}
+// versículos escritos no texto: "Gn 22:2", "Gênesis 22.2", "Gn 22,2", "Gn 22:2, 14; 26:3-5"
+function achaVersos(txt) {
+  const conta = new Map(); let ord = 0;
+  const poe = (b, c, v) => { const id = vid(b, c, v); if (!vExiste(id)) return; const x = conta.get(id); if (x) x.n++; else conta.set(id, { id, n: 1, o: ord++ }); };
+  const rx = /(^|[^A-Za-zÀ-ú\d])([1-3]\s?)?([A-ZÁÉÍÓÚÂÊÔ][a-záéíóúâêôãõç]{1,16})\.?\s(\d{1,3})([:.]|,(?=\d))(\d{1,3})/g;
+  const seg = /^(?:\s*[-–]\s*\d{1,3}(?::\d{1,3})?)?\s*([,;])\s*(?:(\d{1,3})[:.])?(\d{1,3})(?![\d:]|[.,]\d)/;
+  let m;
+  while ((m = rx.exec(txt))) {
+    const r = parseRef((m[2] || '') + m[3] + ' ' + m[4] + ':' + m[6]);
+    if (!r || !r.v) { rx.lastIndex = m.index + m[1].length + 1; continue; }
+    poe(r.b, r.c, r.v);
+    if (m[5] === ',') continue;
+    let pos = rx.lastIndex, c = r.c, k;
+    while ((k = seg.exec(txt.slice(pos, pos + 40)))) {
+      if (k[1] === ';' && !k[2]) break;
+      if (k[2]) c = +k[2];
+      poe(r.b, c, +k[3]); pos += k[0].length;
+    }
+    rx.lastIndex = pos;
+  }
+  let lista = [...conta.values()];
+  const total = lista.length;
+  if (total > IMP.MAXV) lista = lista.sort((a, b) => b.n - a.n || a.o - b.o).slice(0, IMP.MAXV);
+  return { refs: lista.sort((a, b) => a.o - b.o).map(x => x.id), total };
+}
+async function lerArquivo(f) {
+  const ext = (f.name.match(/\.([a-z0-9]+)$/i)?.[1] || '').toLowerCase();
+  if (f.size > IMP.MAXB) throw { code: 'grande' };
+  let r;
+  if (ext === 'docx' || /wordprocessingml/.test(f.type)) r = await textoDocx(await f.arrayBuffer());
+  else if (ext === 'pdf' || f.type === 'application/pdf') r = await textoPdf(await f.arrayBuffer());
+  else if (['txt', 'md', 'markdown'].includes(ext) || (!ext && f.type.startsWith('text/'))) r = { blocos: String(await f.text()).replace(/\r\n?/g, '\n').split(/\n\s*\n/).map(t => ({ t: t.trim() })) };
+  else if (['doc', 'odt', 'rtf', 'pages', 'wps'].includes(ext)) throw { code: 'doc', ext };
+  else throw { code: 'formato' };
+  let titulo;
+  if (r.titulo) { // título vindo das propriedades do PDF: se o texto começa com ele, não repete
+    titulo = r.titulo; const i = r.blocos.findIndex(b => b.t);
+    if (i >= 0 && norm(r.blocos[i].t.replace(/^##\s+/, '').replace(/\*+/g, '')) === norm(titulo)) r.blocos.splice(i, 1);
+  } else titulo = tiraTitulo(r.blocos, tituloDoArquivo(f.name));
+  let texto = blocosParaTexto(r.blocos).trim(), cortado = false;
+  if (!texto) throw { code: 'vazio' };
+  if (texto.length > IMP.MAXC) { texto = texto.slice(0, IMP.MAXC).replace(/\s+\S*$/, '') + '\n\n[…] (texto cortado: o arquivo passa de 150 mil caracteres)'; cortado = true; }
+  const v = achaVersos(texto);
+  return { titulo, texto, refs: v.refs, totalV: v.total, cortado, paginas: r.paginas || 0 };
+}
+const impErro = e => ({
+  grande: 'O arquivo passa de 25 MB.',
+  doc: 'Arquivo .' + (e?.ext || 'doc') + ' não é aceito. Abra no Word e salve como .docx ou como PDF.',
+  formato: 'Formato não aceito. Envie Word (.docx), PDF ou texto (.txt).',
+  escaneado: 'Este PDF é escaneado (só imagem das páginas): não tem texto para ler. Se tiver o original em Word, envie ele.',
+  vazio: 'Não achei texto neste arquivo.',
+  senha: 'Este PDF tem senha. Tire a senha e envie de novo.',
+  lib: 'Não consegui abrir o leitor de arquivos. Confira a internet e tente de novo.',
+})[e?.code] || 'Não consegui ler este arquivo. Ele pode estar danificado.';
+const IMP_SCHEMA = { type: 'object', additionalProperties: false, required: ['titulo', 'tipo', 'resumo', 'versos', 'palavras', 'temas'], properties: {
+  titulo: { type: 'string' }, tipo: { type: 'string', enum: Object.keys(TIPOS) }, resumo: { type: 'string' },
+  versos: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ref', 'porque'], properties: { ref: { type: 'string' }, porque: { type: 'string' } } } },
+  palavras: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['strong', 'palavra', 'sentido'], properties: { strong: { type: 'string' }, palavra: { type: 'string' }, sentido: { type: 'string' } } } },
+  temas: { type: 'array', items: { type: 'string' } } } };
+// texto final do nó: o resumo do Binah no começo e as palavras no fim; o texto do arquivo fica igual
+function textoImport(it) {
+  let t = it.texto;
+  if (it.bin?.resumo) t = '**Resumo (Binah):** ' + it.bin.resumo + '\n\n' + t;
+  if (it.bin?.pal.length) t += '\n\n## Palavras-chave\n' + it.bin.pal.map(p => `- ${p.s} · ${p.w} (${p.x}) — ${p.sentido}`).join('\n');
+  return t;
+}
+function abrirImport(files) {
+  if (!S.db) { toast('O cérebro não está disponível nesta visualização.'); return; }
+  if (!S.canWrite) { toast('Você só pode ler este cérebro.'); return; }
+  const m = $('#modal'); m.innerHTML = ''; m.hidden = false;
+  let gravando = false;
+  const close = () => { if (gravando) return; m.hidden = true; m.innerHTML = ''; };
+  const itens = [];
+  const lista = h('div', { class: 'imp-lista' });
+  const vazio = h('p', { class: 'imp-info', text: 'Nenhum arquivo na lista. Use “Adicionar arquivos”.' });
+  const status = h('select', { id: 'imp-status' }, Object.keys(STATUS).map(k => h('option', { value: k, text: k })));
+  status.value = 'rascunho';
+  const dicaSt = h('p', { class: 'imp-info' });
+  const dica = () => { dicaSt.textContent = window.ET?.admin && status.value === 'verificado' ? 'Atenção: o que você marca como verificado também aparece para os alunos, na biblioteca. Rascunho fica só com você.' : status.value === 'rascunho' ? 'Rascunho: fica no seu cérebro para você conferir depois.' : ''; dicaSt.classList.toggle('imp-aviso', !!(window.ET?.admin && status.value === 'verificado')); };
+  status.onchange = dica; dica();
+  const gravar = h('button', { class: 'btn primary', type: 'button', text: 'Gravar no cérebro' });
+  const conta = () => {
+    const prontos = itens.filter(i => i.estado === 'pronto').length, lendo = itens.some(i => i.estado === 'lendo');
+    gravar.disabled = gravando || lendo || !prontos;
+    if (!gravando) gravar.textContent = lendo ? 'Lendo os arquivos…' : prontos > 1 ? `Gravar os ${prontos} no cérebro` : 'Gravar no cérebro';
+    if (!itens.length) { if (!vazio.isConnected) lista.append(vazio); } else vazio.remove();
+  };
+  const box = h('div', { class: 'box imp', role: 'dialog', 'aria-label': 'Enviar estudos para o cérebro' },
+    h('h2', { style: 'margin:0;font-size:18px', text: 'Enviar estudos para o cérebro' }),
+    h('p', { class: 'imp-sub', text: 'Word (.docx), PDF ou texto. O app lê o texto aqui no seu aparelho, acha os versículos citados e liga o estudo a eles no cérebro. O arquivo em si não fica guardado.' }),
+    lista,
+    h('div', {}, botaoArquivo('+ Adicionar arquivos', fs => add(fs), 'ghost')),
+    h('div', { class: 'imp-pe' }, h('div', { class: 'field' }, h('label', { for: 'imp-status', text: 'Status' }), status), dicaSt,
+      h('div', { class: 'imp-acts', style: 'margin-left:auto' }, h('button', { class: 'btn', type: 'button', text: 'Cancelar', onclick: close }), gravar)));
+  // na prévia, versículo e palavra não abrem nada por cima da lista
+  box.addEventListener('click', e => { if (e.target.closest('.imp-prev [data-goto], .imp-prev [data-strong]')) { e.preventDefault(); e.stopPropagation(); } });
+  m.append(box); m.onclick = e => { if (e.target === m) close(); };
+
+  function add(fs) { for (const f of fs) { const it = novoItem(f); itens.push(it); lista.append(it.el); it.ler(); } conta(); }
+  function novoItem(f) {
+    const it = { f, nome: f.name, estado: 'lendo', tituloMexido: false, bin: null };
+    const st = h('span', { class: 'imp-st', text: 'Lendo…' });
+    const x = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Tirar ' + f.name + ' da lista', title: 'Tirar da lista', html: XSVG, onclick: () => { const i = itens.indexOf(it); if (i >= 0) itens.splice(i, 1); it.el.remove(); conta(); } });
+    const corpo = h('div', { class: 'imp-corpo' });
+    it.el = h('div', { class: 'imp-it' }, h('div', { class: 'imp-top' }, h('span', { class: 'imp-arq', text: '📄 ' + f.name }), st, x), corpo);
+    it.ler = async () => {
+      try { Object.assign(it, await lerArquivo(f)); it.estado = 'pronto'; }
+      catch (e) { console.warn('arquivo', f.name, e); it.estado = 'erro'; it.erro = impErro(e); }
+      if (!it.el.isConnected) return;
+      monta(); conta();
+    };
+    const monta = () => {
+      corpo.innerHTML = '';
+      if (it.estado === 'erro') { it.el.classList.add('erro'); st.className = 'imp-st err'; st.textContent = 'Não deu'; corpo.append(h('p', { class: 'imp-erro', text: it.erro })); return; }
+      st.className = 'imp-st ok'; st.textContent = 'Pronto';
+      const uid = 'imp' + Math.random().toString(36).slice(2, 8);
+      it.inTit = h('input', { id: uid + 't', value: it.titulo, autocomplete: 'off' });
+      it.inTipo = h('select', { id: uid + 'k' }, Object.entries(TIPOS).map(([k, v]) => h('option', { value: k, text: v.n }))); it.inTipo.value = 'estudo';
+      it.inRefs = h('input', { id: uid + 'r', value: it.refs.map(r => refLabel(r)).join('; '), placeholder: 'Ex.: Gn 22:2; Hb 11:17', autocomplete: 'off' });
+      const dupEl = h('p', { class: 'imp-info imp-aviso', hidden: true });
+      const dup = () => { const t = norm(it.inTit.value.trim()); const ja = !!t && [...S.brain.values()].some(n => norm(n.titulo || '') === t); dupEl.hidden = !ja; dupEl.textContent = ja ? 'Já existe um nó com este título no seu cérebro. Se gravar, fica mais um.' : ''; };
+      it.inTit.oninput = () => { it.tituloMexido = true; dup(); }; it.dup = dup;
+      const nPal = (it.texto.match(/\S+/g) || []).length;
+      const infoV = it.totalV ? (it.totalV > it.refs.length ? `${fmt(it.totalV)} versículos citados no texto; liguei os ${it.refs.length} mais citados.` : `${fmt(it.totalV)} ${it.totalV === 1 ? 'versículo citado' : 'versículos citados'} no texto, já ligados.`) : 'Não achei versículos escritos no texto (como “Gn 22:2”). Você pode pôr à mão.';
+      const prev = h('div', { class: 'imp-prev ans' }); let feito = false;
+      const det = h('details', { class: 'imp-det' }, h('summary', { text: `Ver o texto · ${fmt(nPal)} palavras${it.paginas ? ' · ' + it.paginas + (it.paginas === 1 ? ' página' : ' páginas') : ''}` }), prev);
+      det.addEventListener('toggle', () => { if (det.open && !feito) { feito = true; prev.innerHTML = mdLite(it.texto.slice(0, 20000)) + (it.texto.length > 20000 ? '<p class="muted">… (o resto aparece no estudo depois de gravar)</p>' : ''); } });
+      it.binEl = h('div', { class: 'imp-bin', hidden: true });
+      it.btBin = S.sample ? h('button', { class: 'btn glow', type: 'button', text: '✨ Organizar com o Binah', onclick: () => organiza(it) }) : null;
+      corpo.append(
+        h('div', { class: 'field' }, h('label', { for: uid + 't', text: 'Título' }), it.inTit), dupEl,
+        h('div', { class: 'imp-g' }, h('div', { class: 'field' }, h('label', { for: uid + 'k', text: 'Tipo' }), it.inTipo), h('div', { class: 'field' }, h('label', { for: uid + 'r', text: 'Versículos ligados (separe com ;)' }), it.inRefs)),
+        h('p', { class: 'imp-info', text: infoV + (it.cortado ? ' O texto passava de 150 mil caracteres e foi cortado.' : '') }),
+        det, it.binEl,
+        it.btBin ? h('div', { class: 'imp-acts' }, it.btBin, h('span', { class: 'imp-info', style: 'flex:1 1 200px', text: 'Resumo, palavras do original (H0157…) e mais versículos ligados · gasta 1 uso de IA' })) : null);
+      dup();
+    };
+    return it;
+  }
+  async function organiza(it) {
+    if (it.binando) return; it.binando = true;
+    const bt = it.btBin; bt.disabled = true; bt.textContent = 'O Binah está lendo o estudo…';
+    it.binEl.hidden = true;
+    try {
+      const ja = parseRefList(it.inRefs.value);
+      const amostra = it.texto.length > 24000 ? it.texto.slice(0, 20000) + '\n\n[…]\n\n' + it.texto.slice(-3500) : it.texto;
+      const res = await S.sample.json(`Você é o Binah, do app Escola da Torá. ${ETN()} enviou um estudo bíblico que já tinha pronto (arquivo "${it.nome}") para guardar no Segundo Cérebro. Organize sem mudar o conteúdo dele:
+- titulo: título curto e claro do estudo (mantenha "${it.inTit.value.trim()}" se já for bom).
+- tipo: um destes: ${Object.entries(TIPOS).map(([k, v]) => k + ' (' + v.n + ')').join(', ')}. Um estudo completo é "estudo".
+- resumo: de 2 a 4 frases sobre o que o estudo trata e aonde chega. Só o que está no texto, sem inventar.
+- versos: até 8 versículos centrais que o estudo comenta ou pressupõe e que ainda não estão nesta lista: ${ja.map(r => refLabel(r)).join('; ') || 'nenhum'}. Formato "Gn 22:2" (só os 66 livros), com "porque" em uma frase.
+- palavras: até 6 palavras hebraicas ou gregas que o estudo explica ou que são centrais nele, com o número Strong (ex.: "H0157", "G0026"), a palavra no original e o sentido em português. Só ponha se tiver certeza do número.
+- temas: de 3 a 6 temas curtos (ex.: "aliança", "Templo").
+
+TEXTO DO ESTUDO:
+${amostra}`, { modelTier: 'default', schema: IMP_SCHEMA });
+      const extra = [];
+      for (const v of res?.versos || []) {
+        const p = parseRef(String(v?.ref || '')); if (!p || !p.v) continue;
+        const id = vid(p.b, p.c, p.v); if (!vExiste(id) || ja.includes(id) || extra.some(e => e.id === id)) continue;
+        extra.push({ id, porque: String(v.porque || '').trim() }); if (extra.length >= 8) break;
+      }
+      // o número Strong é conferido no léxico do app: o que não existe sai
+      const pal = [];
+      for (const w of res?.palavras || []) {
+        const s = String(w?.strong || '').toUpperCase().replace(/\s+/g, '').replace(/^([HG])0*(\d{1,4})[A-Z]?$/, (_, a, n) => a + n.padStart(4, '0'));
+        if (!/^[HG]\d{4}$/.test(s) || pal.some(p => p.s === s)) continue;
+        const lx = await lexEntry(s).catch(() => null); if (!lx) continue;
+        pal.push({ s, w: lx.w, x: lx.x, sentido: String(w.sentido || lx.g || '').trim() }); if (pal.length >= 6) break;
+      }
+      const antes = { titulo: it.inTit.value, tipo: it.inTipo.value, refs: it.inRefs.value };
+      it.bin = { resumo: String(res?.resumo || '').trim(), pal, extra, temas: (res?.temas || []).map(t => String(t).trim()).filter(Boolean).slice(0, 6), antes };
+      const tit = String(res?.titulo || '').trim();
+      if (tit && !it.tituloMexido) it.inTit.value = tit;
+      if (TIPOS[res?.tipo]) it.inTipo.value = res.tipo;
+      if (extra.length) it.inRefs.value = [it.inRefs.value.trim().replace(/;\s*$/, ''), ...extra.map(e => refLabel(e.id))].filter(Boolean).join('; ');
+      it.dup?.();
+      mostraBin(it);
+      bt.textContent = 'Organizado pelo Binah ✓';
+    } catch (e) {
+      if (e?.code !== 'cancelled') { it.binEl.hidden = false; it.binEl.innerHTML = ''; it.binEl.append(h('p', { class: 'imp-erro', text: e?.et && e?.message ? e.message : 'O Binah não respondeu agora. Tente de novo.' })); }
+      bt.disabled = false; bt.textContent = '✨ Organizar com o Binah';
+    } finally { it.binando = false; }
+  }
+  function mostraBin(it) {
+    const B = it.bin; it.binEl.hidden = false; it.binEl.innerHTML = '';
+    const lang = s => s[0] === 'H' ? { lang: 'he', dir: 'rtl' } : { lang: 'el' };
+    it.binEl.append(
+      h('div', { class: 'imp-bin-h', text: '✨ O Binah organizou' }),
+      B.resumo ? h('p', {}, h('b', { text: 'Resumo: ' }), B.resumo) : null,
+      B.pal.length ? h('div', { class: 'imp-bin-l' }, h('b', { text: 'Palavras:' }), B.pal.map(p => h('span', { class: 'chip' }, p.s + ' · ', h('span', { ...lang(p.s), text: p.w }), ` (${p.x}) — ${p.sentido}`))) : null,
+      B.extra.length ? h('div', {}, h('b', { text: 'Versículos a mais:' }), h('ul', {}, B.extra.map(e => h('li', {}, h('span', { class: 'mono', text: refLabel(e.id) }), e.porque ? ' — ' + e.porque : '')))) : null,
+      B.temas.length ? h('div', { class: 'imp-bin-l' }, h('b', { text: 'Temas:' }), B.temas.map(t => h('span', { class: 'chip', text: t }))) : null,
+      h('p', { class: 'imp-info', text: 'O resumo entra no começo do estudo e as palavras no fim. O seu texto não muda.' }),
+      h('div', {}, h('button', { class: 'btn ghost', type: 'button', text: 'Desfazer o que o Binah fez', onclick: () => {
+        it.inTit.value = B.antes.titulo; it.inTipo.value = B.antes.tipo; it.inRefs.value = B.antes.refs; it.bin = null;
+        it.binEl.hidden = true; it.btBin.disabled = false; it.btBin.textContent = '✨ Organizar com o Binah'; it.dup?.();
+      } })));
+  }
+  gravar.onclick = async () => {
+    const prontos = itens.filter(i => i.estado === 'pronto');
+    if (!prontos.length || gravando) return;
+    // confere tudo antes de gravar o primeiro
+    for (const it of prontos) {
+      it.erroEl?.remove(); it.erroEl = null;
+      const t = it.inTit.value.trim(), partes = it.inRefs.value.split(/[;\n]+/).map(x => x.trim()).filter(Boolean), rs = parseRefList(it.inRefs.value);
+      const msg = !t ? 'Dê um título para encontrar este estudo depois.' : partes.length !== rs.length ? 'Alguma referência não foi reconhecida. Use o formato “Gn 22:2”.' : '';
+      if (msg) { it.erroEl = h('p', { class: 'imp-erro', text: msg }); it.inRefs.closest('.imp-g').after(it.erroEl); (t ? it.inRefs : it.inTit).focus(); it.el.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+      it.dados = { titulo: t, tipo: it.inTipo.value, status: status.value, refs: [...new Set(rs)], texto: textoImport(it), fontes: [{ t: 'Arquivo enviado: ' + it.nome, u: '' }],
+        ...(it.bin?.pal.length ? { palavras: it.bin.pal.map(p => p.s) } : {}), ...(it.bin?.temas.length ? { tags: it.bin.temas } : {}) };
+    }
+    gravando = true; gravar.disabled = true; let ok = 0, ultimo = null;
+    for (const [i, it] of prontos.entries()) {
+      gravar.textContent = prontos.length > 1 ? `Gravando ${i + 1} de ${prontos.length}…` : 'Gravando…';
+      const id = await saveNode(it.dados, null, { quieto: true });
+      if (!id) break;
+      ok++; ultimo = id; it.estado = 'gravado'; it.el.remove(); itens.splice(itens.indexOf(it), 1);
+    }
+    gravando = false;
+    if (ok === prontos.length) {
+      close(); toast(ok === 1 ? 'Estudo gravado no cérebro' : ok + ' estudos gravados no cérebro');
+      if (ok === 1 && typeof ultimo === 'string') setTimeout(() => { if (S.brain.has(ultimo)) LER.open(ultimo); }, 150);
+    } else { toast(ok ? `Gravei ${ok} de ${prontos.length}. Os outros ficaram na lista: tente de novo.` : 'Não consegui gravar. Tente de novo.'); conta(); }
+  };
+  conta(); add(files);
+}
+async function palavraPopup(code) {
+  const m = $('#modal'); m.innerHTML = ''; m.hidden = false;
+  const fecha = () => { m.hidden = true; m.innerHTML = ''; };
+  m.onclick = e => { if (e.target === m || e.target.closest('[data-goto]')) fecha(); };
+  const corpo = h('div', { class: 'pal-pop' }, h('p', { class: 'muted', text: 'Abrindo o léxico…' }));
+  m.append(h('div', { class: 'box', role: 'dialog', 'aria-label': 'Palavra ' + code }, h('div', { class: 'eyebrow', text: 'Strong ' + code }), corpo,
+    h('div', { class: 'es-acts' }, h('button', { class: 'btn primary', type: 'button', text: 'Abrir no léxico', onclick: () => { fecha(); if (LER.isOpen) LER.fechar(true); openLexPanel(code); } }), h('button', { class: 'btn', type: 'button', text: 'Fechar', onclick: fecha }))));
+  const lx = await lexEntry(code).catch(() => null);
+  corpo.innerHTML = '';
+  if (!lx) { corpo.append(h('p', { class: 'muted', text: 'Não encontrei ' + code + ' no léxico.' })); return; }
+  const he = code[0] === 'H';
+  corpo.append(h('div', { class: 'big ' + (he ? 'he' : 'gr'), dir: he ? 'rtl' : 'ltr', lang: he ? 'he' : 'el', text: lx.w }),
+    h('p', {}, h('i', { text: lx.x }), lx.g ? ' — ' + lx.g : ''),
+    lx.f ? h('p', { class: 'muted' }, 'Primeira menção: ', h('button', { class: 'ref', type: 'button', 'data-goto': lx.f, text: refLabel(lx.f, true) }), lx.n ? ' · ' + fmt(lx.n) + ' ocorrências' : '') : null);
 }
 /* ---------- Binah HUD ---------- */
 const RING = { estudo: 0.2, conexao: 0.85, palavra: 0.77, geografia: 0.70, arqueologia: 0.63, rabinico: 0.56, tipologia: 0.49, descoberta: 0.42, pergunta: 0.35, nota: 0.28 };
@@ -3383,7 +3825,7 @@ const BRAIN = {
     const host = $('#brainBody'); if (!host) return; host.innerHTML = '';
     if (!S.db) { host.append(h('div', { class: 'empty', text: 'O Segundo Cérebro não está disponível agora. Entre na sua conta e recarregue a página.' })); return; }
     if (!S.brainReady) { host.append(h('p', { class: 'muted', text: 'Carregando o cérebro…' })); return; }
-    if (!S.brain.size) { host.append(h('div', { class: 'empty' }, h('strong', { text: 'Seu cérebro está vazio.' }), h('br'), 'Abra um versículo no Leitor e use “Anotar descoberta”, ou peça ao Binah: “pesquise X e grave no cérebro”.')); return; }
+    if (!S.brain.size) { host.append(h('div', { class: 'empty' }, h('strong', { text: 'Seu cérebro está vazio.' }), h('br'), 'Abra um versículo no Leitor e use “Anotar descoberta”, envie um estudo que você já tem em Word ou PDF, ou peça ao Binah: “pesquise X e grave no cérebro”.')); return; }
     const sorted = list.sort((a, b) => String(b.atualizado || '').localeCompare(String(a.atualizado || '')) || String(a.id).localeCompare(String(b.id)));
     host.append(h('div', { class: 'ngrid' }, sorted.slice(0, this.listMax).map(nodeCard)));
     if (!sorted.length) host.append(h('div', { class: 'empty', text: 'Nenhum nó com esses filtros.' }));
@@ -3437,7 +3879,7 @@ VIEWS.cerebro = root => {
   wrap.append(h('div', { class: 'eyebrow', text: 'Segundo Cérebro · Binah' }),
     h('div', { style: 'display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;justify-content:space-between' },
       h('div', {}, h('h1', { class: 'h1', text: 'Tudo o que você desvendou, ligado aos versículos' }), h('p', { class: 'lede mono', id: 'brainStats', style: 'font-size:13px' })),
-      h('button', { class: 'btn primary', text: '+ Nova descoberta', onclick: () => openEditor({}) })));
+      h('div', { class: 'imp-acts' }, botaoArquivo('📄 Enviar Word ou PDF', abrirImport), h('button', { class: 'btn primary', text: '+ Nova descoberta', onclick: () => openEditor({}) }))));
   // o cérebro vivo mora aqui (o mesmo da bola do Binah): mexe, amplia e abre o que você tocar
   const dock = h('div', { class: 'nr-dock' });
   wrap.append(dock, h('div', { id: 'brainWidgets', class: 'hud-widgets hud-row' }));
@@ -5614,7 +6056,7 @@ const SELOS = {
   binah: { n: 'Pesquisa do Binah · conferir', c: '#E9A43C' },
 };
 const seloChip = k => { const s = SELOS[k]; return s ? h('span', { class: 'selo selo-' + k, title: s.n }, h('i', { style: 'background:' + s.c }), s.n) : null; };
-const SEC_ICON = { resposta: '💡', chaves: '🔑', passagem: '📜', pessoas: '👤', geografia: '🗺', lugares: '📍', tempo: '⏳', contas: '🧮', palavras: 'א', conexoes: '⇄', judaica: '✡', crista: '✝', arqueologia: '⛏', teses: '⚖', sintese: '✦', perguntas: '?' };
+const SEC_ICON = { texto: '📄', versos: '🔗', resposta: '💡', chaves: '🔑', passagem: '📜', pessoas: '👤', geografia: '🗺', lugares: '📍', tempo: '⏳', contas: '🧮', palavras: 'א', conexoes: '⇄', judaica: '✡', crista: '✝', arqueologia: '⛏', teses: '⚖', sintese: '✦', perguntas: '?' };
 
 /* ---------- expressões das calculadoras (sem eval) ---------- */
 const emLite = s => linkRefs(esc(s || '').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*]+)\*/g, '<em>$1</em>'));
@@ -5768,8 +6210,9 @@ function renderEstudo(root, id) {
   if (!E) { S.estudoSig = estudoSig(id); wrap.append(h('div', { class: 'empty', text: S.brainReady ? 'Este estudo não está disponível. Ele pode ainda ser um rascunho, que só o autor vê.' : 'Carregando o cérebro…' })); root.append(wrap); return; }
   S.estudoSig = estudoSig(id);
   const p = E.passagem || {};
-  const secs = E.secoes || [];
-  const fala = (E.resumo || '') + ' ' + (secs.find(s => s.k === 'sintese')?.md || '');
+  // estudo escrito à mão ou enviado em arquivo: o texto dele vira a seção principal, com os versículos ligados
+  const secs = E.secoes?.length ? E.secoes : [E.texto ? { k: 'texto', t: 'O estudo', md: E.texto } : null, (E.refs || []).length ? { k: 'versos', t: 'Versículos ligados', lista: E.refs } : null].filter(Boolean);
+  const fala = ((E.resumo || '') + ' ' + (secs.find(s => s.k === 'sintese')?.md || '')).trim() || String(E.texto || '').replace(/[*#]+/g, '').slice(0, 1500);
   const ouvir = VOZ.ok ? h('button', { class: 'btn glow', text: 'Ouvir resumo', onclick: () => { if (VOZ.busy) { VOZ.stop(); ouvir.textContent = 'Ouvir resumo'; return; } VOZ.unlock(); ouvir.textContent = 'Parar'; VOZ.sayAll(fala, () => { if (ouvir.isConnected) ouvir.textContent = 'Ouvir resumo'; }); } }) : null;
   const VIS = window.ET?.visitante;
   const share = h('button', { class: 'btn', text: 'Compartilhar', onclick: async () => {
@@ -5806,7 +6249,7 @@ function renderEstudo(root, id) {
       h('button', { class: 'btn glow', text: 'Perguntar ao Binah', onclick: e => { if (VIS) { ET.convite('perguntar ao Binah sobre este estudo'); return; } NEURO.open({ from: e.currentTarget, focus: true }); setTimeout(() => { const i = $('#nrQ'); if (i) i.value = 'Sobre o estudo “' + E.titulo + '”: '; }, 300); } }),
       h('button', { class: 'btn', text: 'Ver no cérebro', onclick: e => { NEURO.open({ from: e.currentTarget }); setTimeout(() => { const V = NEURO.V; const i = V?.g.idx.get(id); if (i != null) V.select(i); }, 700); } }),
       share, verify),
-    h('div', { class: 'es-selos' }, h('span', { class: 'muted', style: 'font-size:12px', text: 'Origem de cada parte:' }), Object.keys(SELOS).map(seloChip))));
+    E.secoes?.length ? h('div', { class: 'es-selos' }, h('span', { class: 'muted', style: 'font-size:12px', text: 'Origem de cada parte:' }), Object.keys(SELOS).map(seloChip)) : null));
   // navegação
   wrap.append(h('nav', { class: 'es-nav', 'aria-label': 'Seções do estudo' }, secs.map(s => h('a', { href: '#sec-' + s.k, class: 'es-nav-a', text: s.t, onclick: ev => { ev.preventDefault(); $('#sec-' + s.k)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } })), h('a', { href: '#sec-ferr', class: 'es-nav-a', text: 'Ferramentas', onclick: ev => { ev.preventDefault(); $('#sec-ferr')?.scrollIntoView({ behavior: 'smooth' }); } })));
   // seções
@@ -5832,6 +6275,7 @@ function renderEstudo(root, id) {
     if (s.sustenta) sec.append(h('h3', { class: 'es-h3', text: 'O que o texto sustenta' }), h('div', { class: 'ans es-md es-sustenta', html: mdLite(s.sustenta) }));
     if (s.fora) sec.append(h('h3', { class: 'es-h3' }, 'Fora da Bíblia ', seloChip('binah')), h('div', { class: 'ans es-md', html: mdLite(s.fora) }));
     if (s.chaves?.length) { const ul = h('ol', { class: 'es-chaves' }); sec.append(ul); s.chaves.forEach(x => { const li = h('li', {}, h('button', { class: 'ref', 'data-goto': x.de, text: x.rot }), x.porque ? h('span', { class: 'soft', text: ' — ' + x.porque }) : null); ul.append(li); verseText(x.de).then(t => { if (t) li.append(h('p', { class: 'es-chave-t', text: '“' + (t.length > 240 ? t.slice(0, 240) + '…' : t) + '”' })); }).catch(() => {}); }); }
+    if (s.lista?.length) sec.append(h('div', { class: 'ler-refs-l' }, s.lista.map(r => h('button', { class: 'ref', type: 'button', 'data-goto': r, text: refLabel(r, true) }))));
     if (s.jornadas?.length) { const jh = h('div', {}); sec.append(jh); estudoJornadas(jh, s.jornadas, p.de); }
     if (s.calcs?.length) sec.append(h('div', { class: 'calc-grid' }, s.calcs.map(calcCard)));
     if (s.palavras?.length) sec.append(h('div', { class: 'es-words' }, s.palavras.map(w => h('div', { class: 'es-word' },
@@ -6369,7 +6813,10 @@ async function boot() {
   $('#brand').onclick = () => setTab('inicio');
   $('#calChip').onclick = () => setTab('mesa');
   $('#searchForm').onsubmit = e => { e.preventDefault(); runSearch($('#busca').value); $('#busca').blur(); };
-  document.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); if (window.ET?.visitante) versoPopup(+g.dataset.goto); else gotoVerse(+g.dataset.goto); } });
+  document.addEventListener('click', e => {
+    const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); if (window.ET?.visitante) versoPopup(+g.dataset.goto); else gotoVerse(+g.dataset.goto); return; }
+    const s = e.target.closest('[data-strong]'); if (s) { e.preventDefault(); palavraPopup(s.dataset.strong); }
+  });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (!$('#modal').hidden) { $('#modal').hidden = true; $('#modal').innerHTML = ''; return; }
