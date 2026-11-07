@@ -1121,6 +1121,14 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
       return 'Não deu certo: ' + m;
     };
     const busy = (btn, on, txt) => { btn.disabled = on; if (txt) btn.textContent = txt; };
+    // Pix gerado e ainda válido fica guardado nesta aba: sobrevive se o celular recarregar a página
+    // pixSalvo() lê, pixSalvo(j) guarda, pixSalvo(null) apaga
+    const pixSalvo = j => {
+      try {
+        if (j === undefined) { const s = JSON.parse(sessionStorage.getItem('et-pix') || 'null'); return s && s.id && s.uid === ET.uid && (!s.expira_em || new Date(s.expira_em) > Date.now()) ? s : null; }
+        if (j) sessionStorage.setItem('et-pix', JSON.stringify({ ...j, uid: ET.uid })); else sessionStorage.removeItem('et-pix');
+      } catch { return null; }
+    };
     const views = {
       entrar() {
         const [l1, em] = field('E-mail', { type: 'email', autocomplete: 'email', required: true, inputmode: 'email' });
@@ -1256,8 +1264,8 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
         const go = $e('button', { class: 'et-btn', type: 'button', text: 'Gerar Pix', onclick: () => gera() });
         const area = $e('div', { class: 'et-pix' });
         const wrap = $e('div', { class: 'et-form' }, situ, planos, go, area,
-          $e('div', { class: 'et-links' }, $e('button', { type: 'button', class: 'et-link', text: 'Voltar ao perfil', onclick: () => { ET.pararPix?.(); show('perfil'); } }),
-            $e('button', { type: 'button', class: 'et-link', text: A.ativo ? 'Voltar ao app' : 'Continuar só lendo', onclick: () => { ET.pararPix?.(); hide(); } })));
+          $e('div', { class: 'et-links' }, $e('button', { type: 'button', class: 'et-link', text: 'Voltar ao perfil', onclick: () => { ET.pararPix?.(); pixSalvo(null); show('perfil'); } }),
+            $e('button', { type: 'button', class: 'et-link', text: A.ativo ? 'Voltar ao app' : 'Continuar só lendo', onclick: () => { ET.pararPix?.(); pixSalvo(null); hide(); } })));
         async function gera() {
           say(''); busy(go, true, 'Gerando Pix…');
           let j = {};
@@ -1268,6 +1276,7 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
             if (!r.ok || !j.id) throw new Error(j.error || 'Não consegui gerar o Pix agora.');
           } catch (e) { busy(go, false, 'Gerar Pix'); return say(e.message || 'Sem conexão com o servidor.', 'err'); }
           go.remove(); planos.remove();
+          j.plano = j.plano || plano; pixSalvo(j);
           mostraPix(j);
         }
         function mostraPix(j) {
@@ -1286,24 +1295,27 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
           const relogio = setInterval(() => {
             if (!fim) return; const s = Math.max(0, Math.round((fim - Date.now()) / 1000));
             rel.textContent = s ? 'Este Pix vale por mais ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : 'Este Pix expirou. Volte e gere outro.';
-            if (!s) { clearInterval(relogio); }
+            if (!s) { clearInterval(relogio); pixSalvo(null); }
           }, 1000);
           // aprovação: escuta o banco em tempo real e, por garantia, confere a cada 6 s
           let feito = false;
           const aprovado = async () => {
-            if (feito) return; feito = true; ET.pararPix();
+            if (feito) return; feito = true; ET.pararPix?.(); pixSalvo(null);
             await ET.carregaAcesso(); ET.contaUI();
             area.innerHTML = '';
             area.append($e('p', { class: 'et-ok', text: 'Pagamento confirmado! ' + ET.textoAcesso() + ' Obrigado por apoiar a Escola da Torá.' }),
               $e('button', { class: 'et-btn', type: 'button', text: 'Voltar ao app', onclick: () => hide() }));
           };
           // confere direto no Mercado Pago (a função libera o acesso se o Pix já caiu), além do aviso em tempo real
-          const confere = async () => { try { const { data: s } = await sb.auth.getSession(); const r = await fetch(ET.url + '/functions/v1/mp-criar-pix', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (s.session?.access_token || ''), apikey: ET.key }, body: JSON.stringify({ conferir: j.id }) }); const d = await r.json().catch(() => ({})); if (d.status === 'approved') aprovado(); else if (['rejected', 'cancelled'].includes(d.status)) { st.textContent = 'Este Pix foi cancelado ou expirou. Gere outro.'; ET.pararPix?.(); } } catch {} };
+          const confere = async () => { try { const { data: s } = await sb.auth.getSession(); const r = await fetch(ET.url + '/functions/v1/mp-criar-pix', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (s.session?.access_token || ''), apikey: ET.key }, body: JSON.stringify({ conferir: j.id }) }); const d = await r.json().catch(() => ({})); if (d.status === 'approved') aprovado(); else if (['rejected', 'cancelled'].includes(d.status)) { st.textContent = 'Este Pix foi cancelado ou expirou. Gere outro.'; ET.pararPix?.(); pixSalvo(null); } } catch {} };
           const canal = sb.channel('et-pix-' + j.id).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'et_pagamentos', filter: 'id=eq.' + j.id }, p => { if (p.new?.status === 'approved') aprovado(); }).subscribe();
           const tick = setInterval(confere, 8000);
           ET.pararPix = () => { clearInterval(tick); clearInterval(relogio); try { sb.removeChannel(canal); } catch {} ET.pararPix = null; };
           confere();
         }
+        // o celular pode recarregar a página enquanto a pessoa está no app do banco: volta direto para o mesmo Pix
+        const salvo = pixSalvo();
+        if (salvo) { plano = salvo.plano || plano; go.remove(); planos.remove(); mostraPix(salvo); }
         return [wrap, null];
       },
       bloqueado() {
@@ -1314,8 +1326,11 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
         return [$e('div', { class: 'et-form' }, $e('p', { class: 'et-ok', text: t }), ET.uid ? null : VISITA && !ET.visitante ? $e('button', { class: 'et-btn', type: 'button', text: 'Conhecer a Escola da Torá', onclick: () => location.replace(ET.app) }) : $e('button', { class: 'et-btn ghost', type: 'button', text: 'Ir para Entrar', onclick: () => show('entrar') }))];
       },
     };
-    function show(v, arg) { say(''); body.innerHTML = ''; el.classList.toggle('intro', v === 'carregando'); el.dataset.v = v; el.dataset.logado = ET.uid ? '1' : ''; titulo.textContent = v === 'perfil' ? 'Meu perfil' : v === 'assinar' ? 'Assinar' : v === 'nova' && ET.uid ? 'Trocar senha' : 'Escola da Torá'; const [node, focus] = views[v](arg); body.append(node); if (ET.visitante && ['entrar', 'criar', 'esqueci', 'convite'].includes(v)) body.append($e('button', { class: 'et-link et-volta', type: 'button', text: '‹ Voltar ao estudo', onclick: () => hide() })); const bt = node.querySelector?.('.et-btn'); if (bt) bt.after(msg); else body.after(msg); el.hidden = false; document.documentElement.classList.add('et-locked'); if (focus) setTimeout(() => focus.focus(), 60); anim(); }
-    function hide() { el.classList.add('out'); document.documentElement.classList.remove('et-locked'); setTimeout(() => { el.hidden = true; el.classList.remove('out'); stopAnim(); }, 450); }
+    // lembra a tela aberta (perfil ou assinatura) para reabrir se o celular recarregar a página
+    function lembra(v) { try { if (v === 'perfil' || v === 'assinar') sessionStorage.setItem('et-tela', v); else if (v !== 'carregando') sessionStorage.removeItem('et-tela'); } catch {} }
+    let tHide = 0;
+    function show(v, arg) { clearTimeout(tHide); el.classList.remove('out'); ET.pararPix?.(); lembra(v); say(''); body.innerHTML = ''; el.classList.toggle('intro', v === 'carregando'); el.dataset.v = v; el.dataset.logado = ET.uid ? '1' : ''; titulo.textContent = v === 'perfil' ? 'Meu perfil' : v === 'assinar' ? 'Assinar' : v === 'nova' && ET.uid ? 'Trocar senha' : 'Escola da Torá'; const [node, focus] = views[v](arg); body.append(node); if (ET.visitante && ['entrar', 'criar', 'esqueci', 'convite'].includes(v)) body.append($e('button', { class: 'et-link et-volta', type: 'button', text: '‹ Voltar ao estudo', onclick: () => hide() })); const bt = node.querySelector?.('.et-btn'); if (bt) bt.after(msg); else body.after(msg); el.hidden = false; document.documentElement.classList.add('et-locked'); if (focus) setTimeout(() => focus.focus(), 60); anim(); }
+    function hide() { ET.pararPix?.(); lembra(''); clearTimeout(tHide); el.classList.add('out'); document.documentElement.classList.remove('et-locked'); tHide = setTimeout(() => { el.hidden = true; el.classList.remove('out'); stopAnim(); }, 450); }
     // fundo: neurônios devagar
     let raf = 0;
     function anim() {
@@ -1359,7 +1374,19 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
     gate.intro.etapa(58, 88, 'Trazendo as suas anotações…');
     resolveReady(session); ET.contaUI();
     // a abertura fecha quando o cérebro termina de carregar (ou depois de alguns segundos, para nunca prender)
-    ET.introFim = () => gate.intro.fim(() => { if (ET.acesso?.situacao === 'vencido') gate.show('assinar'); else gate.hide(); }, 'Tudo pronto. Shalom, ' + ET.nome + '!');
+    // Fecha a abertura uma vez só. Era chamada duas vezes (quando o cérebro carregava e aos 9 s),
+    // e a segunda fechava o perfil ou o Pix que a pessoa tinha acabado de abrir.
+    let introFechada = false;
+    ET.introFim = () => {
+      if (introFechada) return; introFechada = true;
+      gate.intro.fim(() => {
+        if (!gate.emIntro) return; // a pessoa já está em outra tela: não mexe
+        let t = ''; try { t = sessionStorage.getItem('et-tela') || ''; } catch {}
+        if (ET.acesso?.situacao === 'vencido' || (t === 'assinar' && ET.podeAssinar())) gate.show('assinar');
+        else if (t === 'perfil') gate.show('perfil');
+        else gate.hide();
+      }, 'Tudo pronto. Shalom, ' + ET.nome + '!');
+    };
     setTimeout(ET.introFim, 9000);
   }
   sb.auth.onAuthStateChange((ev, session) => {
