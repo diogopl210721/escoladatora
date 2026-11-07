@@ -1552,14 +1552,10 @@ html.et-visita #searchForm,html.et-visita .tabs,html.et-visita #orb,html.et-visi
         out.push(...data); if (data.length < 1000) break;
       }
       ET.gate?.intro.etapa(76, 94, 'Preparando as 344 mil ligações…');
+      // cada pessoa só recebe o próprio cérebro; o aluno começa vazio
+      // (as 344 mil ligações dos arcos vêm dos dados da Bíblia, não daqui; as anotações-base do Diogo moram na conta dele)
       const m = new Map();
-      // as anotações-base são do Diogo: só entram no cérebro dele. Cada aluno começa com o cérebro vazio
-      // (as 344 mil ligações dos arcos vêm dos dados da Bíblia, não daqui).
-      if (ET.admin) try {
-        const bj = await fetch('data/base.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null);
-        for (const n of (bj?.nos || [])) { const { id, ...d } = n; if (id) m.set(id, { id, user_id: 'base', base: true, status: d.status || 'rascunho', dados: d }); }
-      } catch {}
-      for (const r of out) { const cur = m.get(r.id); if (cur && !cur.base && cur.user_id === ET.uid) continue; m.set(r.id, r); }
+      for (const r of out) { const cur = m.get(r.id); if (cur && cur.user_id === ET.uid) continue; m.set(r.id, r); }
       rows = m;
     }
     let carregado = null;
